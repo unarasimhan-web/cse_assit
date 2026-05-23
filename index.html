@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PayPal CSE Dashboard — ArmorCode</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222536;
+      --border: #2e3150;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --red: #ff4d6d;
+      --orange: #ff9f43;
+      --yellow: #ffd60a;
+      --green: #2ed573;
+      --blue: #48cae4;
+      --text: #e8eaf6;
+      --muted: #8b91b5;
+      --urgent: #ff4d6d;
+      --highest: #ff6b6b;
+      --high: #ff9f43;
+      --medium: #ffd60a;
+      --low: #2ed573;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-badge {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .logo h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+    .logo span { color: var(--muted); font-size: 14px; margin-left: 4px; }
+    .header-meta { font-size: 12px; color: var(--muted); text-align: right; }
+    .health-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 159, 67, 0.15);
+      border: 1px solid var(--orange);
+      color: var(--orange);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .health-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* LAYOUT */
+    main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* SUMMARY CARDS */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+    .stat-num { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .c-red { color: var(--red); }
+    .c-orange { color: var(--orange); }
+    .c-blue { color: var(--blue); }
+    .c-green { color: var(--green); }
+    .c-accent { color: var(--accent); }
+    .c-yellow { color: var(--yellow); }
+
+    /* EXEC SUMMARY */
+    .exec-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--orange);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+    .exec-box h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 12px; }
+    .exec-box p { font-size: 14px; line-height: 1.7; color: var(--text); }
+    .exec-box ul { margin: 10px 0 0 18px; font-size: 14px; line-height: 2; }
+    .exec-box li::marker { color: var(--orange); }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+    .filter-label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+    .filter-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    input[type="search"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      outline: none;
+      width: 220px;
+      margin-left: auto;
+    }
+    input[type="search"]:focus { border-color: var(--accent); }
+
+    /* SECTION */
+    .section { margin-bottom: 36px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .section-title { font-size: 16px; font-weight: 600; }
+    .section-count {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--surface2);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    td { padding: 12px 16px; vertical-align: middle; }
+    td.key { font-family: 'Courier New', monospace; font-size: 12px; color: var(--accent); white-space: nowrap; }
+    td.key a { color: var(--accent); text-decoration: none; }
+    td.key a:hover { text-decoration: underline; }
+    td.summary { max-width: 340px; }
+    td.summary span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-status-new        { background: rgba(139,145,181,0.15); color: #8b91b5; border: 1px solid #3a3f5c; }
+    .badge-status-todo       { background: rgba(72,202,228,0.12); color: var(--blue); border: 1px solid rgba(72,202,228,0.3); }
+    .badge-status-inprogress { background: rgba(108,99,255,0.15); color: var(--accent); border: 1px solid rgba(108,99,255,0.4); }
+    .badge-status-devdone    { background: rgba(0,212,170,0.12); color: var(--accent2); border: 1px solid rgba(0,212,170,0.3); }
+    .badge-status-scope      { background: rgba(255,214,10,0.12); color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
+    .badge-status-schedule   { background: rgba(255,159,67,0.12); color: var(--orange); border: 1px solid rgba(255,159,67,0.3); }
+    .badge-status-finalize   { background: rgba(46,213,115,0.12); color: var(--green); border: 1px solid rgba(46,213,115,0.3); }
+    .badge-status-requirements { background: rgba(255,214,10,0.12); color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
+    .badge-status-needinfo   { background: rgba(255,77,109,0.12); color: var(--red); border: 1px solid rgba(255,77,109,0.3); }
+    .badge-status-default    { background: rgba(139,145,181,0.15); color: #8b91b5; border: 1px solid #3a3f5c; }
+
+    .badge-p-urgent  { background: rgba(255,77,109,0.15);  color: var(--red);    border: 1px solid rgba(255,77,109,0.4); }
+    .badge-p-highest { background: rgba(255,107,107,0.15); color: #ff6b6b;       border: 1px solid rgba(255,107,107,0.4); }
+    .badge-p-high    { background: rgba(255,159,67,0.15);  color: var(--orange); border: 1px solid rgba(255,159,67,0.4); }
+    .badge-p-medium  { background: rgba(255,214,10,0.12);  color: var(--yellow); border: 1px solid rgba(255,214,10,0.3); }
+    .badge-p-low     { background: rgba(46,213,115,0.12);  color: var(--green);  border: 1px solid rgba(46,213,115,0.3); }
+
+    .badge-type-bug   { background: rgba(255,77,109,0.12); color: var(--red); border: 1px solid rgba(255,77,109,0.3); }
+    .badge-type-story { background: rgba(108,99,255,0.12); color: var(--accent); border: 1px solid rgba(108,99,255,0.3); }
+    .badge-type-task  { background: rgba(72,202,228,0.12); color: var(--blue); border: 1px solid rgba(72,202,228,0.3); }
+
+    .overdue { color: var(--red); font-weight: 600; }
+    .due-soon { color: var(--orange); }
+
+    /* HIDDEN ROW */
+    tr.hidden { display: none; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-badge">AC</span>
+    <h1>PayPal CSE Dashboard <span>/ ArmorCode</span></h1>
+  </div>
+  <div class="header-meta">
+    <div class="health-badge"><span class="health-dot"></span> NEEDS ATTENTION</div>
+    <div>Last updated: May 23, 2026</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- EXEC SUMMARY -->
+  <div class="exec-box">
+    <h2>Executive Summary</h2>
+    <p>PayPal account is <strong style="color:var(--orange)">active with moderate risk</strong>. 25 open items tracked across Jira — 7 bugs (2 at Highest priority), 5 urgent feature requests with no assignee, and 1 overdue task. Runbook reliability is a recurring concern with 3 separate bug reports. Immediate focus areas:</p>
+    <ul>
+      <li>Assign owners to 3 Urgent unassigned FRs (PROD-2285, PROD-2286, PROD-2287)</li>
+      <li>Resolve overdue ST-72615 (due May 21, 2026)</li>
+      <li>Close out runbook bug cluster (ENG-121258 in Dev Done — push to release)</li>
+      <li>Clarify PROD-3139 (Need Info) with PayPal stakeholders</li>
+    </ul>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-num c-accent">25</div><div class="stat-label">Total Open</div></div>
+    <div class="stat-card"><div class="stat-num c-red">7</div><div class="stat-label">Bugs</div></div>
+    <div class="stat-card"><div class="stat-num c-accent">8</div><div class="stat-label">Stories / FRs</div></div>
+    <div class="stat-card"><div class="stat-num c-blue">10</div><div class="stat-label">Tasks</div></div>
+    <div class="stat-card"><div class="stat-num c-orange">5</div><div class="stat-label">Urgent</div></div>
+    <div class="stat-card"><div class="stat-num c-red">1</div><div class="stat-label">Overdue</div></div>
+    <div class="stat-card"><div class="stat-num c-yellow">3</div><div class="stat-label">Unassigned Urgent</div></div>
+    <div class="stat-card"><div class="stat-num c-green">1</div><div class="stat-label">Dev Done</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-btn active" onclick="filterType('all', this)">All</button>
+    <button class="filter-btn" onclick="filterType('Bug', this)">Bugs</button>
+    <button class="filter-btn" onclick="filterType('Story', this)">Stories</button>
+    <button class="filter-btn" onclick="filterType('Task', this)">Tasks</button>
+    <button class="filter-btn" onclick="filterType('urgent', this)">Urgent / Highest</button>
+    <button class="filter-btn" onclick="filterType('unassigned', this)">Unassigned</button>
+    <input type="search" placeholder="Search tickets..." oninput="searchTickets(this.value)" />
+  </div>
+
+  <!-- BUGS -->
+  <div class="section" id="section-bugs">
+    <div class="section-header">
+      <span style="font-size:18px">🐛</span>
+      <span class="section-title">Bugs</span>
+      <span class="section-count" id="count-bugs">7</span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-bugs">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Summary</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-type="Bug" data-priority="Highest" data-assignee="Darwin Goyal">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-121258" target="_blank">ENG-121258</a></td>
+            <td class="summary"><span title="[App] [runbook] Paypal runbook Failed findings/updatesWithFilters Task">[App] [runbook] PayPal runbook Failed "findings/updatesWithFilters"</span></td>
+            <td><span class="badge badge-status-devdone">Dev Done</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Darwin Goyal</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Bug" data-priority="Highest" data-assignee="Prashant Kumar">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-110795" target="_blank">ENG-110795</a></td>
+            <td class="summary"><span title="Runbook Partial tool/imageMapping Task: Duplicate entry">Runbook Partial tool/imageMapping Task: Duplicate entry</span></td>
+            <td><span class="badge badge-status-todo">To Do</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Prashant Kumar</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Bug" data-priority="High" data-assignee="Gaurav Singhal">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-123212" target="_blank">ENG-123212</a></td>
+            <td class="summary"><span title="[APP] [authserver] Request exceeded 20s response time">[APP] [authserver] Request exceeded 20s response time</span></td>
+            <td><span class="badge badge-status-new">New</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td>Gaurav Singhal</td>
+            <td>2026-05-23</td>
+          </tr>
+          <tr data-type="Bug" data-priority="Medium" data-assignee="Darwin Goyal">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-121094" target="_blank">ENG-121094</a></td>
+            <td class="summary"><span>Runbooks responsible for CPU spikes</span></td>
+            <td><span class="badge badge-status-inprogress">In Progress</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Darwin Goyal</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Story" data-priority="High" data-assignee="Shagun Attri">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3361" target="_blank">PROD-3361</a></td>
+            <td class="summary"><span>[BUG] CrowdStrike Container Runtime - ArmorCode implementation</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td>Shagun Attri</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Task" data-priority="Medium" data-assignee="Sachin Gautam">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-4030" target="_blank">DOC-4030</a></td>
+            <td class="summary"><span>[BUG] History Showing Finding Reopening Incorrectly</span></td>
+            <td><span class="badge badge-status-inprogress">In Progress</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Sachin Gautam</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Task" data-priority="Medium" data-assignee="Prerit Tomar">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3583" target="_blank">DOC-3583</a></td>
+            <td class="summary"><span>[BUG] CrowdStrike Container Runtime - Hyperwallet CID</span></td>
+            <td><span class="badge badge-status-todo">To Do</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Prerit Tomar</td>
+            <td>2026-05-21</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STORIES / FRs -->
+  <div class="section" id="section-stories">
+    <div class="section-header">
+      <span style="font-size:18px">📖</span>
+      <span class="section-title">Stories / Feature Requests</span>
+      <span class="section-count" id="count-stories">8</span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-stories">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Summary</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2286" target="_blank">PROD-2286</a></td>
+            <td class="summary"><span>[FR] Post-Sync Security Engineer Workflows</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-urgent">Urgent</span></td>
+            <td style="color:var(--red)">Unassigned ⚠</td>
+            <td>2026-05-23</td>
+          </tr>
+          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2287" target="_blank">PROD-2287</a></td>
+            <td class="summary"><span>[FR] Data Sync Validation and Monitoring Setup</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-urgent">Urgent</span></td>
+            <td style="color:var(--red)">Unassigned ⚠</td>
+            <td>2026-05-23</td>
+          </tr>
+          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2285" target="_blank">PROD-2285</a></td>
+            <td class="summary"><span>[FR] Agent Monitoring and Metrics</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-urgent">Urgent</span></td>
+            <td style="color:var(--red)">Unassigned ⚠</td>
+            <td>2026-05-23</td>
+          </tr>
+          <tr data-type="Story" data-priority="Urgent" data-assignee="Salim Khan">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-123339" target="_blank">ENG-123339</a></td>
+            <td class="summary"><span>[FR] AC Connect - Default Columns Config by Issue Type</span></td>
+            <td><span class="badge badge-status-scope">SCOPE</span></td>
+            <td><span class="badge badge-p-urgent">Urgent</span></td>
+            <td>Salim Khan</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Story" data-priority="Urgent" data-assignee="Sreejith S Menon">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3211" target="_blank">PROD-3211</a></td>
+            <td class="summary"><span>[FR] Discovery support for Traceable</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-urgent">Urgent</span></td>
+            <td>Sreejith S Menon</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Story" data-priority="Highest" data-assignee="Varun Venugopal">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3139" target="_blank">PROD-3139</a></td>
+            <td class="summary"><span>Finding Auto-Inactivation / Auto-Remediation Setting</span></td>
+            <td><span class="badge badge-status-needinfo">Need Info</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Varun Venugopal</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Story" data-priority="Medium" data-assignee="Shagun Attri">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3086" target="_blank">PROD-3086</a></td>
+            <td class="summary"><span>[FR] CrowdStrike Container Runtime - container findings</span></td>
+            <td><span class="badge badge-status-requirements">Requirements</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Shagun Attri</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Story" data-priority="Highest" data-assignee="Ritik Bansal">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-113400" target="_blank">ENG-113400</a></td>
+            <td class="summary"><span>Add GCP Cloud Identifier Asset - Correlation Rules</span></td>
+            <td><span class="badge badge-status-schedule">SCHEDULE</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Ritik Bansal</td>
+            <td>2026-05-21</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="section" id="section-tasks">
+    <div class="section-header">
+      <span style="font-size:18px">✅</span>
+      <span class="section-title">Tasks</span>
+      <span class="section-count" id="count-tasks">10</span>
+    </div>
+    <div class="table-wrap">
+      <table id="table-tasks">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Summary</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Due Date</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-type="Task" data-priority="High" data-assignee="Teerth Mehta">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ST-72615" target="_blank">ST-72615</a></td>
+            <td class="summary"><span>Duplicate selector ".zmdi-paypal-alt" CSS fix</span></td>
+            <td><span class="badge badge-status-todo">To Do</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td>Teerth Mehta</td>
+            <td class="overdue">2026-05-21 ⚠ Overdue</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Story" data-priority="High" data-assignee="Tarun Yadav">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-118446" target="_blank">ENG-118446</a></td>
+            <td class="summary"><span>CrowdStrike Container Security Data Script Update</span></td>
+            <td><span class="badge badge-status-todo">To Do</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td>Tarun Yadav</td>
+            <td class="due-soon">2026-06-03</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Task" data-priority="High" data-assignee="Prashant Kumar">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-115630" target="_blank">ENG-115630</a></td>
+            <td class="summary"><span>Migrate Git Repos to Correct Business Unit</span></td>
+            <td><span class="badge badge-status-inprogress">In Progress</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td>Prashant Kumar</td>
+            <td>—</td>
+            <td>2026-05-22</td>
+          </tr>
+          <tr data-type="Task" data-priority="Highest" data-assignee="Teerth Mehta">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-112499" target="_blank">ENG-112499</a></td>
+            <td class="summary"><span>Remove correlatedFindingsCount - Prod accounts</span></td>
+            <td><span class="badge badge-status-new">New</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Teerth Mehta</td>
+            <td>—</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Task" data-priority="Highest" data-assignee="Teerth Mehta">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-112532" target="_blank">ENG-112532</a></td>
+            <td class="summary"><span>Remove correlatedFindingsCount - PayPal_PoC (Tenant 6)</span></td>
+            <td><span class="badge badge-status-new">New</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td>Teerth Mehta</td>
+            <td>—</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Story" data-priority="High" data-assignee="Unassigned">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3502" target="_blank">PROD-3502</a></td>
+            <td class="summary"><span>Promote aws_ec2_instance_id to cloudResourceId</span></td>
+            <td><span class="badge badge-status-finalize">FINALIZE</span></td>
+            <td><span class="badge badge-p-high">High</span></td>
+            <td style="color:var(--muted)">Unassigned</td>
+            <td>—</td>
+            <td>2026-05-20</td>
+          </tr>
+          <tr data-type="Story" data-priority="Highest" data-assignee="Unassigned">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3535" target="_blank">PROD-3535</a></td>
+            <td class="summary"><span>Map foundOn from firstDetectedAt / createdAt</span></td>
+            <td><span class="badge badge-status-finalize">FINALIZE</span></td>
+            <td><span class="badge badge-p-highest">Highest</span></td>
+            <td style="color:var(--muted)">Unassigned</td>
+            <td>—</td>
+            <td>2026-05-20</td>
+          </tr>
+          <tr data-type="Task" data-priority="Medium" data-assignee="Varsha Madathil">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3925" target="_blank">DOC-3925</a></td>
+            <td class="summary"><span>Docs: [PayPal] Jira ArmorCode Connect Plugin Support</span></td>
+            <td><span class="badge badge-status-inprogress">In Progress</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Varsha Madathil</td>
+            <td>—</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Task" data-priority="Medium" data-assignee="Puneet Kumar">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3963" target="_blank">DOC-3963</a></td>
+            <td class="summary"><span>Docs: ArmorCode Connect - Show for all work items</span></td>
+            <td><span class="badge badge-status-todo">To Do</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Puneet Kumar</td>
+            <td>—</td>
+            <td>2026-05-21</td>
+          </tr>
+          <tr data-type="Task" data-priority="Medium" data-assignee="Arnab Mridha">
+            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-108324" target="_blank">ENG-108324</a></td>
+            <td class="summary"><span>Traceable: Possible Dedup Failures for Code tools</span></td>
+            <td><span class="badge badge-status-new">New</span></td>
+            <td><span class="badge badge-p-medium">Medium</span></td>
+            <td>Arnab Mridha</td>
+            <td>—</td>
+            <td>2026-05-21</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer>ArmorCode CSE Dashboard · PayPal Account · Data sourced from Jira · May 23, 2026</footer>
+
+<script>
+  let currentType = 'all';
+  let currentSearch = '';
+
+  function statusClass(status) {
+    const map = {
+      'new': 'new', 'to do': 'todo', 'in progress': 'inprogress',
+      'dev done': 'devdone', 'scope': 'scope', 'schedule': 'schedule',
+      'finalize': 'finalize', 'requirements': 'requirements', 'need info': 'needinfo'
+    };
+    return 'badge-status-' + (map[status.toLowerCase()] || 'default');
+  }
+
+  function filterType(type, btn) {
+    currentType = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+  }
+
+  function searchTickets(val) {
+    currentSearch = val.toLowerCase();
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const allRows = document.querySelectorAll('tbody tr');
+    allRows.forEach(row => {
+      const type = row.dataset.type || '';
+      const priority = (row.dataset.priority || '').toLowerCase();
+      const assignee = (row.dataset.assignee || '').toLowerCase();
+      const text = row.textContent.toLowerCase();
+
+      let typeMatch = true;
+      if (currentType === 'Bug') typeMatch = type === 'Bug';
+      else if (currentType === 'Story') typeMatch = type === 'Story';
+      else if (currentType === 'Task') typeMatch = type === 'Task';
+      else if (currentType === 'urgent') typeMatch = priority === 'urgent' || priority === 'highest';
+      else if (currentType === 'unassigned') typeMatch = assignee === 'unassigned';
+
+      const searchMatch = !currentSearch || text.includes(currentSearch);
+
+      row.classList.toggle('hidden', !(typeMatch && searchMatch));
+    });
+    updateCounts();
+  }
+
+  function updateCounts() {
+    ['bugs', 'stories', 'tasks'].forEach(section => {
+      const table = document.getElementById('table-' + section);
+      if (!table) return;
+      const visible = table.querySelectorAll('tbody tr:not(.hidden)').length;
+      document.getElementById('count-' + section).textContent = visible;
+    });
+  }
+</script>
+</body>
+</html>
