@@ -187,7 +187,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ jql, fields, maxResults: 100 })
+      body: JSON.stringify({ query: jql, fields, maxResults: 100 })
     });
 
     if (!jiraRes.ok) {
@@ -253,7 +253,7 @@ app.get('/api/debug', requireAuth, async (req, res) => {
     const r = await fetch('https://armorcodeinc.atlassian.net/rest/api/3/search/jql', {
       method: 'POST',
       headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jql, fields: ['summary','status','priority'], maxResults: 3 })
+      body: JSON.stringify({ query: jql, fields: ['summary','status','priority'], maxResults: 3 })
     });
     const raw = await r.json();
     res.json({ status: r.status, topLevelKeys: Object.keys(raw), total: raw.total, sampleCount: (raw.issues||raw.values||[]).length, sample: (raw.issues||raw.values||[]).slice(0,3) });
