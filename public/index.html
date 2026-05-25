@@ -735,17 +735,7 @@
   <div class="modal-box">
     <div class="modal-title" id="modal-title">📊 On-Track Check</div>
     <div class="modal-subtitle" id="modal-subtitle"></div>
-    <div class="modal-token-section" id="modal-token-section" style="display:none">
-      <div class="modal-token-label">
-        Jira API Token — needed to post comments
-        (<a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">get one ↗</a>)
-      </div>
-      <div class="modal-token-row">
-        <input type="password" class="modal-token-input" id="modal-token"
-               placeholder="Paste your Jira API token here" autocomplete="off" />
-        <button class="modal-token-save" onclick="saveToken()">Save token</button>
-      </div>
-    </div>
+    <div id="modal-status" style="display:none;margin-bottom:10px;padding:10px 12px;border-radius:7px;font-size:13px;line-height:1.5"></div>
     <textarea class="modal-comment" id="modal-comment"></textarea>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancel</button>
@@ -1418,8 +1408,17 @@ function injectActionButtons() {
     const eta      = cells[etaIdx] ? cells[etaIdx].textContent.trim() : '—';
     const td = document.createElement('td');
     td.style.textAlign = 'center';
-    td.innerHTML = `<button class="action-btn" title="Post on-track check comment to Jira"
-      onclick="openTrackModal('${issueKey}','${summary}','${eta}')">${jiraIcon}</button>`;
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'action-btn';
+    actionBtn.title = 'Post on-track check comment to Jira';
+    actionBtn.innerHTML = jiraIcon;
+    actionBtn.dataset.key = issueKey;
+    actionBtn.dataset.summary = summary;
+    actionBtn.dataset.eta = eta;
+    actionBtn.addEventListener('click', () => {
+      openTrackModal(actionBtn.dataset.key, actionBtn.dataset.summary, actionBtn.dataset.eta);
+    });
+    td.appendChild(actionBtn);
     row.appendChild(td);
   });
 }
@@ -1563,6 +1562,7 @@ let _activeIssueKey = '';
 
 function openTrackModal(issueKey, summary, eta) {
   _activeIssueKey = issueKey;
+  setModalStatus('', '');
   document.getElementById('modal-title').textContent = '📊 On-Track Check · ' + issueKey;
   document.getElementById('modal-subtitle').textContent = summary;
   const etaLine = (eta && eta !== '—') ? 'Planned ETA: ' + eta : 'No ETA currently set in Jira';
@@ -1580,27 +1580,47 @@ function closeModal() {
   document.getElementById('jira-modal').classList.remove('open');
 }
 
+function setModalStatus(msg, type) {
+  const el = document.getElementById('modal-status');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = 'block';
+  el.style.background = type === 'error' ? '#ff4d6d22' : '#00c85322';
+  el.style.border    = '1px solid ' + (type === 'error' ? '#ff4d6d66' : '#00c85366');
+  el.style.color     = type === 'error' ? '#ff8099' : '#00e676';
+  el.textContent = msg;
+}
+
 async function sendJiraComment() {
   const text = document.getElementById('modal-comment').value.trim();
   if (!text) return;
+  if (!_activeIssueKey) {
+    setModalStatus('❌ No issue key — please close and reopen the modal.', 'error');
+    return;
+  }
   const btn = document.getElementById('modal-post-btn');
   btn.disabled = true; btn.textContent = 'Posting…';
+  setModalStatus('', '');
+  console.log('[Jira comment] posting to key:', _activeIssueKey);
   try {
     const resp = await fetch('/api/comment/' + encodeURIComponent(_activeIssueKey), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
     });
+    console.log('[Jira comment] server response status:', resp.status);
     const result = await resp.json().catch(() => ({}));
+    console.log('[Jira comment] server response body:', result);
     if (resp.ok) {
-      closeModal();
-      showToast('✅ Comment posted to ' + _activeIssueKey, 'success');
+      setModalStatus('✅ Comment posted successfully to ' + _activeIssueKey, 'success');
+      setTimeout(() => { closeModal(); showToast('✅ Comment posted to ' + _activeIssueKey, 'success'); }, 1200);
     } else {
-      throw new Error(result.error || 'HTTP ' + resp.status);
+      const detail = result.details ? ' — ' + result.details : '';
+      setModalStatus('❌ ' + (result.error || 'HTTP ' + resp.status) + detail, 'error');
     }
   } catch (err) {
-    showToast('❌ ' + (err.message || 'Could not post comment'), 'error');
-    console.error('[Jira comment]', err);
+    console.error('[Jira comment] fetch error:', err);
+    setModalStatus('❌ Network error: ' + (err.message || 'Could not reach server'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = '📤 Post to Jira';
   }
