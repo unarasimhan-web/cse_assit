@@ -1088,7 +1088,7 @@ function renderDashboard(data) {
     const etaDisp = eta ? fmtDate(eta) : '—';
     const etaAttr = eta ? ` data-sort="${eta}"` : '';
     const etaStyle = etaColor(eta);
-    return `<tr data-exec-idx="${idx}" style="border-bottom:1px solid var(--border)">
+    return `<tr data-exec-idx="${idx}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="${escHtml(eta||'')}" style="border-bottom:1px solid var(--border)">
       <td><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" style="color:var(--accent)">${escHtml(t.key)}</a></td>
       <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.summary)}">${escHtml(t.summary)}</td>
       <td><span class="${statusBadgeClass(t.status)}" style="font-size:10px">${escHtml(t.status)}</span></td>
@@ -1177,8 +1177,8 @@ function renderSection(sec, tickets, isBug) {
            onclick="toggleTreeRow(event,this,'${escHtml(t.key)}',${isBug})">▶</span>`
       : `<span style="display:inline-block;width:24px;flex-shrink:0"></span>`;
 
-    // data attrs for filter/sort
-    const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}"`;
+    // data attrs for filter/sort + action button
+    const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="${escHtml(eta||'')}"`;
 
     let cells = `
       <td class="key">${toggleHtml}<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
@@ -1398,14 +1398,10 @@ function injectActionButtons() {
 
   document.querySelectorAll('tbody tr').forEach(row => {
     if (row.classList.contains('child-row')) return;
-    const keyEl  = row.querySelector('td.key a');
-    const sumEl  = row.querySelector('td.summary span');
-    const issueKey = keyEl ? keyEl.textContent.trim() : '';
-    const summary  = sumEl ? (sumEl.getAttribute('title') || sumEl.textContent).replace(/'/g, "\\'") : '';
-    const cells    = Array.from(row.querySelectorAll('td'));
-    const isBug    = row.dataset.type === 'Bug';
-    const etaIdx   = isBug ? 5 : 5;
-    const eta      = cells[etaIdx] ? cells[etaIdx].textContent.trim() : '—';
+    const issueKey = row.dataset.key || '';
+    const summary  = row.dataset.summary || '';
+    const eta      = row.dataset.eta || '—';
+    if (!issueKey) return; // skip rows without a key (e.g. "no tickets" placeholder)
     const td = document.createElement('td');
     td.style.textAlign = 'center';
     const actionBtn = document.createElement('button');
