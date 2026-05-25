@@ -57,7 +57,6 @@
       height: 32px;
       background: var(--border);
     }
-    /* PayPal logo SVG inline */
     .paypal-logo {
       display: flex;
       align-items: center;
@@ -84,6 +83,30 @@
 
     /* LAYOUT */
     main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* LOADING / ERROR */
+    .loading-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 340px; gap: 16px; color: var(--muted);
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-state {
+      background: rgba(255,77,109,0.08); border: 1px solid var(--red);
+      border-radius: 12px; padding: 24px 28px; color: var(--text);
+    }
+    .error-state h3 { color: var(--red); margin-bottom: 8px; }
+    .error-state pre { font-size: 12px; color: var(--muted); margin-top: 8px; white-space: pre-wrap; }
+    .refresh-btn {
+      background: var(--surface2); border: 1px solid var(--accent);
+      color: var(--accent); padding: 5px 14px; border-radius: 8px;
+      font-size: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .refresh-btn:hover { background: rgba(108,99,255,0.15); }
 
     /* SUMMARY CARDS */
     .stats-section-label {
@@ -216,7 +239,6 @@
     .pager-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
     .pager-btn:disabled { opacity: 0.3; cursor: default; }
     .pager-info { font-size: 12px; color: var(--muted); min-width: 140px; text-align: center; }
-    /* Numbered page buttons */
     .pager-num {
       min-width: 32px; padding: 4px 9px;
       background: transparent; border: 1px solid var(--border);
@@ -257,20 +279,6 @@
     td.key { font-family: 'Courier New', monospace; font-size: 12px; color: var(--accent); white-space: nowrap; }
     td.key a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
     td.key a:hover { opacity: 0.8; }
-    /* Tree structure */
-    .tree-toggle {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 16px; height: 16px; border-radius: 3px; cursor: pointer;
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--accent); font-size: 9px; margin-right: 5px;
-      transition: transform 0.15s; user-select: none; vertical-align: middle;
-    }
-    .tree-toggle.open { transform: rotate(90deg); }
-    tr.child-row { background: rgba(108,99,255,0.04); }
-    tr.child-row td { padding-top: 7px; padding-bottom: 7px; font-size: 12px; border-top: none; }
-    tr.child-row:hover { background: rgba(108,99,255,0.09); }
-    .child-indent { padding-left: 28px !important; }
-    .tree-branch { color: var(--muted); font-size: 11px; margin-right: 5px; }
     .link-badge {
       display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 10px;
       margin-left: 5px; vertical-align: middle; font-family: 'Segoe UI', sans-serif;
@@ -278,24 +286,6 @@
     }
     .link-badge.relates  { background: rgba(72,202,228,0.15); color: var(--blue); border: 1px solid rgba(72,202,228,0.3); }
     .link-badge.blocked  { background: rgba(255,77,109,0.12); color: var(--red);  border: 1px solid rgba(255,77,109,0.3); }
-    /* Ticket tooltip — fixed-position overlay so table overflow never clips it */
-    #ticket-tooltip-global {
-      display: none;
-      position: fixed;
-      z-index: 9999;
-      background: var(--surface2);
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      padding: 10px 14px;
-      width: 300px;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--text);
-      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
-      pointer-events: none;
-      white-space: normal;
-    }
     td.summary { max-width: 380px; }
     td.summary span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -336,7 +326,6 @@
     .dev-link { color: var(--muted); font-size: 11px; text-decoration: none; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; display: inline-block; transition: all 0.15s; }
     .dev-link:hover { border-color: var(--accent); color: var(--accent); }
     .dev-cell { white-space: nowrap; min-width: 140px; }
-    #table-exec td:first-child { white-space: nowrap; }
     .dev-cell > span { margin-right: 4px; }
 
     .overdue { color: var(--red); font-weight: 600; }
@@ -373,7 +362,7 @@
       margin-left: 4px;
     }
 
-    /* ── ACTION ICONS ─────────────────────────────────────── */
+    /* ACTION ICONS */
     .action-btn {
       background: none;
       border: 1px solid var(--border);
@@ -394,7 +383,7 @@
       background: rgba(108,99,255,0.1);
     }
 
-    /* ── MODAL ─────────────────────────────────────────────── */
+    /* MODAL */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -414,136 +403,68 @@
       width: 92%;
       box-shadow: 0 24px 48px rgba(0,0,0,0.5);
     }
-    .modal-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .modal-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 16px;
-      line-clamp: 2;
-      overflow: hidden;
-    }
-    .modal-token-section {
-      margin-bottom: 14px;
-    }
-    .modal-token-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .modal-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 16px; overflow: hidden; }
+    .modal-token-section { margin-bottom: 14px; }
+    .modal-token-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
     .modal-token-label a { color: var(--accent); }
-    .modal-token-row {
-      display: flex;
-      gap: 8px;
-    }
+    .modal-token-row { display: flex; gap: 8px; }
     .modal-token-input {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 13px;
-      font-family: monospace;
-      padding: 8px 12px;
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px; font-family: monospace; padding: 8px 12px;
     }
     .modal-token-save {
-      background: var(--surface2);
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      color: var(--accent);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 8px 16px;
-      white-space: nowrap;
+      background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px;
+      color: var(--accent); cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 16px; white-space: nowrap;
     }
     .modal-comment {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 13px;
-      font-family: inherit;
-      line-height: 1.55;
-      padding: 12px;
-      resize: vertical;
-      min-height: 130px;
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 13px; font-family: inherit; line-height: 1.55;
+      padding: 12px; resize: vertical; min-height: 130px;
     }
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      margin-top: 16px;
-    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
     .modal-cancel {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 13px;
-      padding: 8px 18px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); cursor: pointer; font-size: 13px; padding: 8px 18px;
     }
     .modal-post {
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 8px 20px;
+      background: var(--accent); border: none; border-radius: 8px;
+      color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 20px;
     }
     .modal-post:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* ── TOAST ─────────────────────────────────────────────── */
+    /* TOAST */
     .toast {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 20px;
-      font-size: 13px;
-      color: var(--text);
-      z-index: 2000;
-      transform: translateY(80px);
-      opacity: 0;
+      position: fixed; bottom: 28px; right: 28px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px;
+      font-size: 13px; color: var(--text); z-index: 2000;
+      transform: translateY(80px); opacity: 0;
       transition: transform 0.28s, opacity 0.28s;
-      max-width: 380px;
-      pointer-events: none;
+      max-width: 380px; pointer-events: none;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast-success { border-color: var(--green) !important; }
     .toast-error   { border-color: var(--red)   !important; }
     .toast-info    { border-color: var(--accent) !important; }
+
+    /* Exec summary compact table */
+    #table-exec td { padding: 5px 8px; }
+    #table-exec th { padding: 5px 8px; }
   </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <!-- ArmorCode Logo — three-circle icon, transparent background -->
-    <img src="data:image/png;base64,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"
+    <img src="data:image/png;base64,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"
          alt="ArmorCode" width="36" height="36" style="flex-shrink:0;" />
     <div class="logo-divider"></div>
-    <!-- PayPal Logo SVG -->
     <div class="paypal-logo">
       <svg width="90" height="24" viewBox="0 0 90 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- PP icon -->
         <g>
-          <!-- Back P (light blue) -->
           <path d="M10 4h5.5C18 4 19.5 5.5 19 8c-.4 2-2.2 3.5-4.5 3.5H12l-1 5H8L10 4z" fill="#009cde"/>
-          <!-- Front P (dark blue) -->
           <path d="M7 7h5.5C15 7 16.5 8.5 16 11c-.4 2-2.2 3.5-4.5 3.5H9l-1 5H5L7 7z" fill="#003087"/>
         </g>
-        <!-- PayPal text -->
         <text x="22" y="17" font-family="'Trebuchet MS', Arial, sans-serif" font-weight="700" font-size="14" fill="#003087">Pay</text>
         <text x="43" y="17" font-family="'Trebuchet MS', Arial, sans-serif" font-weight="700" font-size="14" fill="#009cde">Pal</text>
       </svg>
@@ -552,7 +473,10 @@
     <h1>CSE Dashboard</h1>
   </div>
   <div class="header-right">
-    <div class="header-meta">Last updated: May 24, 2026</div>
+    <div class="header-meta">
+      Last refreshed: <span id="last-updated">—</span>
+      &nbsp;<button class="refresh-btn" onclick="loadTickets()" title="Refresh data from Jira">↻ Refresh</button>
+    </div>
     <div class="user-info-bar">
       <img id="user-photo" src="" alt="" style="width:28px;height:28px;border-radius:50%;display:none;">
       <div>
@@ -566,1315 +490,140 @@
 
 <main>
 
-  <!-- EXEC SUMMARY -->
-  <div class="exec-box">
-    <h2>Executive Summary — PayPal Account</h2>
-    <p style="margin-bottom:10px"><strong style="color:var(--pp-light)">16 open tickets</strong> &nbsp;·&nbsp; <strong style="color:var(--green)">0 active bugs</strong> &nbsp;·&nbsp; <strong style="color:var(--red)">9 unassigned</strong> &nbsp;·&nbsp; 2 items with sprint ETAs &nbsp;·&nbsp; As of <span id="exec-date"></span></p>
-
-    <table id="table-exec" style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
-      <thead>
-        <tr style="border-bottom:1px solid var(--border);color:var(--muted);text-align:left">
-          <th data-col="0" data-sorttype="key" onclick="sortSection(this)" style="padding:5px 8px;width:120px;white-space:nowrap">Ticket</th>
-          <th style="padding:5px 8px">Summary</th>
-          <th style="padding:5px 8px;width:80px">Status</th>
-          <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="padding:5px 8px;width:70px">Priority</th>
-          <th style="padding:5px 8px;width:130px">Assignee</th>
-          <th data-col="5" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">Sprint ETA</th>
-          <th data-col="6" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">Created</th>
-          <th style="padding:5px 8px">Challenge / Note</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/ENG-118446" target="_blank" style="color:var(--accent)">ENG-118446</a></td>
-          <td style="padding:5px 8px">CrowdStrike Container Security Script Update (RCE/DoS flags)</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">To Do</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--orange)">High</span></td>
-          <td style="padding:5px 8px">Tarun Yadav</td>
-          <td style="padding:5px 8px" data-sort="2026-06-03"><strong style="color:var(--orange)">Jun 3, 2026</strong></td>
-          <td style="padding:5px 8px">2026-04-21</td>
-          <td style="padding:5px 8px">Not yet started. Dedup logic and rce/dos Boolean fields need eng validation before PayPal rollout.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)" data-tree-id="ENG-113400-ex">
-          <td style="padding:5px 8px"><span class="tree-toggle" onclick="toggleChildren('ENG-113400-ex',this)" style="margin-right:4px">▶</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-113400" target="_blank" style="color:var(--accent)">ENG-113400</a></td>
-          <td style="padding:5px 8px">GCP Cloud Identifier Asset Correlation Rules</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Schedule</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Highest</span></td>
-          <td style="padding:5px 8px">Ritik Bansal</td>
-          <td style="padding:5px 8px" data-sort="2026-06-03"><strong style="color:var(--orange)">Jun 3, 2026</strong></td>
-          <td style="padding:5px 8px">2026-03-17</td>
-          <td style="padding:5px 8px">Scheduled for R-269. GCP asset test data needed from Vinayak (Orca + Defender for Cloud).</td>
-        </tr>
-        <tr class="child-row" data-parent="ENG-113400-ex" style="display:none;border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px" class="child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-116934" target="_blank" style="color:var(--accent)">ENG-116934</a><span class="link-badge blocked">is blocked by</span></td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">[DevOps] Configure Azure &amp; GCP Integrations for Asset Ingestion</td>
-          <td style="padding:5px 8px"><span class="badge badge-status-devdone" style="font-size:10px">Duplicate</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red);font-size:11px">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">Marked duplicate — superseded by DEVOPS-13491.</td>
-        </tr>
-        <tr class="child-row" data-parent="ENG-113400-ex" style="display:none;border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px" class="child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/DEVOPS-13491" target="_blank" style="color:var(--accent)">DEVOPS-13491</a><span class="link-badge blocked">is blocked by</span></td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">Configure Azure &amp; GCP Integrations for Asset Ingestion</td>
-          <td style="padding:5px 8px"><span class="badge badge-status-devdone" style="font-size:10px">Done</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--muted);font-size:11px">Medium</span></td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">Done — prerequisite for ENG-113400 unblocked.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/ENG-123339" target="_blank" style="color:var(--accent)">ENG-123339</a></td>
-          <td style="padding:5px 8px">AC Connect — Default Column Config by Issue Type</td>
-          <td style="padding:5px 8px"><span style="color:var(--blue)">Scope</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px">Salim Khan</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2026-04-17</td>
-          <td style="padding:5px 8px">In scoping. No sprint assigned yet. PayPal needs configurable column order across ASM/AppSec/Container/Infra groups.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3211" target="_blank" style="color:var(--accent)">PROD-3211</a></td>
-          <td style="padding:5px 8px">[FR] Discovery Support for Traceable</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px">Sreejith S Menon</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2026-04-06</td>
-          <td style="padding:5px 8px">Requirements phase. No eng sprint yet. Assigned but no delivery date confirmed.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)" data-tree-id="PROD-2285-ex">
-          <td style="padding:5px 8px"><span class="tree-toggle" onclick="toggleChildren('PROD-2285-ex',this)" style="margin-right:4px">▶</span><a href="https://armorcodeinc.atlassian.net/browse/PROD-2285" target="_blank" style="color:var(--accent)">PROD-2285</a></td>
-          <td style="padding:5px 8px">[FR] Agent Monitoring and Metrics</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2025-09-22</td>
-          <td style="padding:5px 8px">No owner, no sprint. Critical FR — needs product owner assignment.</td>
-        </tr>
-        <tr class="child-row" data-parent="PROD-2285-ex" style="display:none;border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px" class="child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-99764" target="_blank" style="color:var(--accent)">ENG-99764</a><span class="link-badge relates">relates to</span></td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">Add metrics support for Agent</td>
-          <td style="padding:5px 8px"><span class="badge badge-status-devdone" style="font-size:10px">Done</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red);font-size:11px">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px;color:var(--muted);font-size:11px">Completed engineering work for agent metrics.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2287" target="_blank" style="color:var(--accent)">PROD-2287</a></td>
-          <td style="padding:5px 8px">[FR] Data Sync Validation and Monitoring</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2025-09-22</td>
-          <td style="padding:5px 8px">No owner, no sprint. Grouped with PROD-2285/2286 as data sync trilogy.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2286" target="_blank" style="color:var(--accent)">PROD-2286</a></td>
-          <td style="padding:5px 8px">[FR] Post-Sync Security Engineer Workflows</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2025-09-22</td>
-          <td style="padding:5px 8px">No owner, no sprint. Part of data sync trilogy.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3316" target="_blank" style="color:var(--accent)">PROD-3316</a></td>
-          <td style="padding:5px 8px">[FR] Extend Data Theorem — exploitability field</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Urgent</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2026-04-20</td>
-          <td style="padding:5px 8px">No owner. EASY/MODERATE/DIFFICULT exploitability field ingestion needed.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2831" target="_blank" style="color:var(--accent)">PROD-2831</a></td>
-          <td style="padding:5px 8px">[Help] Enable Metrics &amp; Monitoring for Traceable</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Highest</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2026-02-10</td>
-          <td style="padding:5px 8px">No owner. Blocked — depends on Traceable Discovery FR (PROD-3211) progress.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3259" target="_blank" style="color:var(--accent)">PROD-3259</a></td>
-          <td style="padding:5px 8px">[FR] Data Theorem: Correlate Prod &amp; Pre-Prod Findings</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">Requirements</span></td>
-          <td style="padding:5px 8px"><span style="color:var(--red)">Highest</span></td>
-          <td style="padding:5px 8px;color:var(--red)">⚠ Unassigned</td>
-          <td style="padding:5px 8px;color:var(--muted)">—</td>
-          <td style="padding:5px 8px">2026-04-13</td>
-          <td style="padding:5px 8px">No owner. Pre-prod/prod finding correlation gap is a blocker for PayPal's P1 triage workflow.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3925" target="_blank" style="color:var(--accent)">DOC-3925</a></td>
-          <td style="padding:5px 8px">Docs: AC Connect Plugin — Custom Fields as Columns</td>
-          <td style="padding:5px 8px"><span style="color:var(--green)">In Progress</span></td>
-          <td style="padding:5px 8px"><span style="color:#aaa">—</span></td>
-          <td style="padding:5px 8px">Varsha Madathil</td>
-          <td style="padding:5px 8px" data-sort="2026-05-28"><strong style="color:var(--red)">May 28, 2026</strong></td>
-          <td style="padding:5px 8px">2026-04-14</td>
-          <td style="padding:5px 8px">Active sprint D-267, in progress. Sprint ends May 28 — at risk if not completed this week.</td>
-        </tr>
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:5px 8px"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3963" target="_blank" style="color:var(--accent)">DOC-3963</a></td>
-          <td style="padding:5px 8px">Docs: AC Connect — Show for All, limit to Issue Types</td>
-          <td style="padding:5px 8px"><span style="color:#aaa">To Do</span></td>
-          <td style="padding:5px 8px"><span style="color:#aaa">—</span></td>
-          <td style="padding:5px 8px">Puneet Kumar</td>
-          <td style="padding:5px 8px" data-sort="2026-05-28"><strong style="color:var(--red)">May 28, 2026</strong></td>
-          <td style="padding:5px 8px">2026-04-27</td>
-          <td style="padding:5px 8px">Sprint D-267, not yet started. Sprint closes May 28 — needs immediate pickup.</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p style="font-size:11px;color:var(--muted);margin:0"><strong style="color:var(--orange)">Key Challenges:</strong> &nbsp;6 Urgent/Highest FRs have no owner or sprint — these are invisible to engineering until assigned. &nbsp;·&nbsp; DOC-3963 not started with 4 days to sprint close. &nbsp;·&nbsp; PROD-2831 and PROD-3259 are Highest priority but blocked on upstream PROD requirements. &nbsp;·&nbsp; ENG-118446 not started despite Jun 3 sprint deadline.</p>
+  <!-- LOADING STATE -->
+  <div id="loading-state" class="loading-state">
+    <div class="spinner"></div>
+    <div>Fetching live data from Jira…</div>
   </div>
 
-  <!-- STAT CARDS — numbers are clean <a> links to Jira; clicking label/background filters locally -->
-  <div class="stats-section-label">Jira Stats</div>
-  <div class="summary-grid">
-    <div class="stat-card stat-active" onclick="filterStat('open', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-accent"><a href="https://armorcodeinc.atlassian.net/issues/?jql=key%20in%20(PROD-2285%2CPROD-2287%2CPROD-2286%2CENG-123339%2CPROD-3211%2CPROD-3316%2CENG-113400%2CPROD-2831%2CPROD-3259%2CENG-118446%2CPROD-2856%2CPROD-2843%2CPROD-3086%2CPROD-3127%2CDOC-3925%2CDOC-3963)%20ORDER%20BY%20updated%20DESC" target="_blank">16</a></div>
-      <div class="stat-label">Open Jira Tickets</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('Bug', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-green"><a href="https://armorcodeinc.atlassian.net/issues/?jql=labels%20in%20(%22PayPal%22%2C%22PayPal_PoC%22%2C%22PayPal_Prod%22%2C%22paypal%22%2C%22paypal-poc-list%22%2C%22paypal_poc%22)%20AND%20issuetype%20%3D%20Bug%20AND%20statusCategory%20!%3D%20Done%20AND%20updated%20%3E%3D%20-10d%20ORDER%20BY%20updated%20DESC" target="_blank">0</a></div>
-      <div class="stat-label">Active Bug</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('Story', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-accent"><a href="https://armorcodeinc.atlassian.net/issues/?jql=key%20in%20(PROD-2285%2CPROD-2287%2CPROD-2286%2CENG-123339%2CPROD-3211%2CPROD-3316%2CENG-113400%2CPROD-2831%2CPROD-3259%2CENG-118446%2CPROD-2856%2CPROD-2843%2CPROD-3086%2CPROD-3127)%20ORDER%20BY%20updated%20DESC" target="_blank">14</a></div>
-      <div class="stat-label">Stories / FRs</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('Task', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-blue"><a href="https://armorcodeinc.atlassian.net/issues/?jql=key%20in%20(DOC-3925%2CDOC-3963)" target="_blank">2</a></div>
-      <div class="stat-label">Tasks / Docs</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('unassigned', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-orange"><a href="https://armorcodeinc.atlassian.net/issues/?jql=key%20in%20(PROD-2285%2CPROD-2287%2CPROD-2286%2CPROD-3316%2CPROD-2831%2CPROD-3259%2CPROD-2856%2CPROD-2843%2CPROD-3127)%20ORDER%20BY%20updated%20DESC" target="_blank">9</a></div>
-      <div class="stat-label">Unassigned</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('duesoon', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-yellow"><a href="https://armorcodeinc.atlassian.net/browse/ENG-118446" target="_blank">1</a></div>
-      <div class="stat-label">Due Soon</div>
-    </div>
-    <div class="stat-card" onclick="filterStat('inprogress', this, event)" title="Number → open in Jira · Label → filter here">
-      <div class="stat-num c-pp"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3925" target="_blank">1</a></div>
-      <div class="stat-label">In Progress</div>
-    </div>
+  <!-- ERROR STATE -->
+  <div id="error-state" class="error-state" style="display:none">
+    <h3>⚠️ Could not load ticket data</h3>
+    <p id="error-msg"></p>
+    <pre id="error-detail"></pre>
+    <br/><button class="refresh-btn" onclick="loadTickets()">↻ Try again</button>
   </div>
 
-  <!-- FILTERS -->
-  <div class="filters">
-    <span class="filter-label">Filter:</span>
-    <button class="filter-btn active" onclick="filterType('all', this)">All</button>
-    <button class="filter-btn" onclick="filterType('Story', this)">Stories / FRs</button>
-    <button class="filter-btn" onclick="filterType('Task', this)">Tasks / Docs</button>
-    <button class="filter-btn" onclick="filterType('urgent', this)">Urgent / Highest</button>
-    <button class="filter-btn" onclick="filterType('unassigned', this)">Unassigned</button>
-    <button class="filter-btn" onclick="filterType('Bug', this)">🐛 Bugs</button>
-    <input type="search" placeholder="Search tickets..." oninput="searchTickets(this.value)" />
-  </div>
+  <!-- DASHBOARD (populated dynamically) -->
+  <div id="dashboard-content" style="display:none">
 
-  <!-- STORIES / FRs -->
-  <div class="section" id="section-stories">
-    <div class="section-header">
-      <span style="font-size:18px">📋</span>
-      <span class="section-title">Stories / Feature Requests</span>
-      <span class="section-count" id="count-stories">14</span>
-    </div>
-    <div class="table-wrap">
-      <table id="table-stories">
+    <!-- STAT CARDS -->
+    <div class="stats-section-label">Jira Stats</div>
+    <div class="summary-grid" id="stat-cards"></div>
+
+    <!-- EXEC SUMMARY -->
+    <div class="exec-box">
+      <h2>Executive Summary — PayPal Account</h2>
+      <p id="exec-headline" style="margin-bottom:10px"></p>
+      <table id="table-exec" style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
         <thead>
-          <tr>
-            <th data-col="0" data-sorttype="key" onclick="sortSection(this)">Key</th>
-            <th>Summary</th>
-            <th>Status</th>
-            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)">Priority</th>
-            <th>Assignee</th>
-            <th data-col="5" data-sorttype="date" onclick="sortSection(this)">ETA</th>
-            <th data-col="6" data-sorttype="date" onclick="sortSection(this)">Created</th>
-            <th data-col="7" data-sorttype="date" onclick="sortSection(this)">Updated</th>
+          <tr style="border-bottom:1px solid var(--border);color:var(--muted);text-align:left">
+            <th data-col="0" data-sorttype="key" onclick="sortSection(this)" style="padding:5px 8px;width:120px;white-space:nowrap">Ticket</th>
+            <th style="padding:5px 8px">Summary</th>
+            <th style="padding:5px 8px;width:80px">Status</th>
+            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="padding:5px 8px;width:70px">Priority</th>
+            <th style="padding:5px 8px;width:130px">Assignee</th>
+            <th data-col="5" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">ETA</th>
+            <th data-col="6" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">Created</th>
           </tr>
         </thead>
-        <tbody>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned" data-tree-id="PROD-2285">
-            <td class="key"><span class="tree-toggle" onclick="toggleChildren('PROD-2285',this)">▶</span><a href="https://armorcodeinc.atlassian.net/browse/PROD-2285" target="_blank">PROD-2285</a></td>
-            <td class="summary"><span title="[FR] Agent Monitoring and Metrics">[FR] Agent Monitoring and Metrics</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2025-09-22</td>
-            <td>2026-05-24</td>
-          </tr>
-          <tr class="child-row" data-parent="PROD-2285" style="display:none">
-            <td class="key child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-99764" target="_blank">ENG-99764</a><span class="link-badge relates">relates to</span></td>
-            <td class="summary"><span title="Add metrics support for Agent">Add metrics support for Agent</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--muted)">—</td>
-            <td>—</td>
-            <td>—</td>
-            <td>—</td>
-          </tr>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2287" target="_blank">PROD-2287</a></td>
-            <td class="summary"><span title="[FR] Data Sync Validation and Monitoring Setup">[FR] Data Sync Validation and Monitoring Setup</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2025-09-22</td>
-            <td>2026-05-24</td>
-          </tr>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2286" target="_blank">PROD-2286</a></td>
-            <td class="summary"><span title="[FR] Post-Sync Security Engineer Workflows">[FR] Post-Sync Security Engineer Workflows</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2025-09-22</td>
-            <td>2026-05-24</td>
-          </tr>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Salim Khan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-123339" target="_blank">ENG-123339</a></td>
-            <td class="summary"><span title="[FR] AC Connect - Default Columns Configuration based on Issue Type">[FR] AC Connect - Default Columns Configuration by Issue Type</span></td>
-            <td><span class="badge badge-status-scope">SCOPE</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Salim Khan</td>
-            <td>—</td>
-            <td>2026-04-17</td>
-            <td>2026-05-22</td>
-          </tr>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Sreejith S Menon">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3211" target="_blank">PROD-3211</a></td>
-            <td class="summary"><span title="[FR] Discovery support for Traceable">[FR] Discovery support for Traceable</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Sreejith S Menon</td>
-            <td>—</td>
-            <td>2026-04-06</td>
-            <td>2026-05-22</td>
-          </tr>
-          <tr data-type="Story" data-priority="Urgent" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3316" target="_blank">PROD-3316</a></td>
-            <td class="summary"><span title="[FR] Extend Data Theorem - exploitability field (EASY/MODERATE/DIFFICULT)">[FR] Extend Data Theorem: ingest exploitability field</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2026-04-20</td>
-            <td>2026-05-20</td>
-          </tr>
-          <tr data-type="Story" data-priority="Highest" data-assignee="Ritik Bansal" data-tree-id="ENG-113400">
-            <td class="key"><span class="tree-toggle" onclick="toggleChildren('ENG-113400',this)">▶</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-113400" target="_blank">ENG-113400</a></td>
-            <td class="summary"><span title="Add GCP Cloud Identifier Asset - Asset Correlation Rules">Add GCP Cloud Identifier Asset Correlation Rules</span></td>
-            <td><span class="badge badge-status-schedule">SCHEDULE</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td>Ritik Bansal</td>
-            <td>2026-06-03</td>
-            <td>2026-03-17</td>
-            <td>2026-05-21</td>
-          </tr>
-          <tr class="child-row" data-parent="ENG-113400" style="display:none">
-            <td class="key child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/ENG-116934" target="_blank">ENG-116934</a><span class="link-badge blocked">is blocked by</span></td>
-            <td class="summary"><span title="[DevOps] Configure Azure &amp; GCP Integrations for Asset Ingestion (ENG-113400 Prerequisite)">[DevOps] Configure Azure &amp; GCP Integrations for Asset Ingestion</span></td>
-            <td><span class="badge badge-status-devdone">Duplicate</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td style="color:var(--muted)">—</td>
-            <td>—</td>
-            <td>—</td>
-            <td>—</td>
-          </tr>
-          <tr class="child-row" data-parent="ENG-113400" style="display:none">
-            <td class="key child-indent"><span class="tree-branch">└─</span><a href="https://armorcodeinc.atlassian.net/browse/DEVOPS-13491" target="_blank">DEVOPS-13491</a><span class="link-badge blocked">is blocked by</span></td>
-            <td class="summary"><span title="Configure Azure &amp; GCP Integrations for Asset Ingestion (ENG-113400 Prerequisite)">Configure Azure &amp; GCP Integrations for Asset Ingestion</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-medium">Medium</span></td>
-            <td style="color:var(--muted)">—</td>
-            <td>—</td>
-            <td>—</td>
-            <td>—</td>
-          </tr>
-          <tr data-type="Story" data-priority="Highest" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2831" target="_blank">PROD-2831</a></td>
-            <td class="summary"><span title="[Help] Enable Metrics & Monitoring for Traceable Integration">[Help] Enable Metrics &amp; Monitoring for Traceable Integration</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2026-02-10</td>
-            <td>2026-05-20</td>
-          </tr>
-          <tr data-type="Story" data-priority="Highest" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3259" target="_blank">PROD-3259</a></td>
-            <td class="summary"><span title="[FR] Data Theorem: correlate findings between production and pre-production">[FR] Data Theorem: correlate production &amp; pre-production findings</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td style="color:var(--red)">Unassigned ⚠</td>
-            <td>—</td>
-            <td>2026-04-13</td>
-            <td>2026-05-20</td>
-          </tr>
-          <tr data-type="Story" data-priority="High" data-assignee="Tarun Yadav">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-118446" target="_blank">ENG-118446</a></td>
-            <td class="summary"><span title="CrowdStrike Container Security Data Script Update (rce/dos boolean flags, dedup)">CrowdStrike Container Security Data Script Update</span></td>
-            <td><span class="badge badge-status-todo">To Do</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td>Tarun Yadav</td>
-            <td class="due-soon">2026-06-03</td>
-            <td>2026-04-21</td>
-            <td>2026-05-22</td>
-          </tr>
-          <tr data-type="Story" data-priority="High" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2856" target="_blank">PROD-2856</a></td>
-            <td class="summary"><span title="FR: Subgroups auto-generated in Non-Production even with no scans">FR: Subgroups auto-generated in Non-Prod without scans</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td style="color:var(--muted)">Unassigned</td>
-            <td>—</td>
-            <td>2026-02-16</td>
-            <td>2026-05-20</td>
-          </tr>
-          <tr data-type="Story" data-priority="High" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-2843" target="_blank">PROD-2843</a></td>
-            <td class="summary"><span title="[FR] Enable Runbook Config JSON sync to GitHub for version control">[FR] Runbook Config JSON sync to GitHub (version control)</span></td>
-            <td><span class="badge badge-status-backlog">Backlog</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td style="color:var(--muted)">Unassigned</td>
-            <td>—</td>
-            <td>2026-02-12</td>
-            <td>2026-05-20</td>
-          </tr>
-          <tr data-type="Story" data-priority="Medium" data-assignee="Shagun Attri">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3086" target="_blank">PROD-3086</a></td>
-            <td class="summary"><span title="[FR] CrowdStrike Container Runtime - use image_created_at with relative age filter">[FR] CrowdStrike Container: image_created_at relative age filter</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-medium">Medium</span></td>
-            <td>Shagun Attri</td>
-            <td>—</td>
-            <td>2026-03-13</td>
-            <td>2026-05-22</td>
-          </tr>
-          <tr data-type="Story" data-priority="Medium" data-assignee="Unassigned">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/PROD-3127" target="_blank">PROD-3127</a></td>
-            <td class="summary"><span title="[FR] Slack integration: trigger details + always execute Post to Slack step">[FR] Slack integration: trigger details &amp; always-execute alert</span></td>
-            <td><span class="badge badge-status-requirements">Requirements</span></td>
-            <td><span class="badge badge-p-medium">Medium</span></td>
-            <td style="color:var(--muted)">Unassigned</td>
-            <td>—</td>
-            <td>2026-03-23</td>
-            <td>2026-05-20</td>
-          </tr>
-        </tbody>
+        <tbody id="exec-tbody"></tbody>
       </table>
     </div>
-    <div class="pager" id="pager-stories" style="display:none"></div>
-  </div>
 
-  <!-- TASKS / DOCS -->
-  <div class="section" id="section-tasks">
-    <div class="section-header">
-      <span style="font-size:18px">📝</span>
-      <span class="section-title">Tasks / Documentation</span>
-      <span class="section-count" id="count-tasks">2</span>
+    <!-- FILTERS -->
+    <div class="filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" onclick="filterType('all',this)">All</button>
+      <button class="filter-btn" onclick="filterType('Story',this)">Stories</button>
+      <button class="filter-btn" onclick="filterType('Task',this)">Tasks</button>
+      <button class="filter-btn" onclick="filterType('Bug',this)">Bugs</button>
+      <button class="filter-btn" onclick="filterType('urgent',this)">🔴 Urgent</button>
+      <button class="filter-btn" onclick="filterType('unassigned',this)">⚠ Unassigned</button>
+      <button class="filter-btn" onclick="filterType('duesoon',this)">⏰ Due Soon</button>
+      <button class="filter-btn" onclick="filterType('inprogress',this)">▶ In Progress</button>
+      <input type="search" placeholder="Search tickets…" oninput="searchTickets(this.value)" />
     </div>
-    <div class="table-wrap">
-      <table id="table-tasks">
-        <thead>
-          <tr>
-            <th data-col="0" data-sorttype="key" onclick="sortSection(this)">Key</th>
-            <th>Summary</th>
-            <th>Status</th>
-            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)">Priority</th>
-            <th>Assignee</th>
-            <th data-col="5" data-sorttype="date" onclick="sortSection(this)">ETA</th>
-            <th data-col="6" data-sorttype="date" onclick="sortSection(this)">Created</th>
-            <th data-col="7" data-sorttype="date" onclick="sortSection(this)">Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr data-type="Task" data-priority="Medium" data-assignee="Varsha Madathil">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3925" target="_blank">DOC-3925</a></td>
-            <td class="summary"><span title="Docs: [PayPal] ArmorCode Connect Plugin Support for Custom Fields as Columns">Docs: ArmorCode Connect Plugin — Custom Fields as Columns</span></td>
-            <td><span class="badge badge-status-inprogress">In Progress</span></td>
-            <td><span class="badge badge-p-medium">Medium</span></td>
-            <td>Varsha Madathil</td>
-            <td style="color:var(--muted)">—</td>
-            <td>2026-04-14</td>
-            <td>2026-05-21</td>
-          </tr>
-          <tr data-type="Task" data-priority="Medium" data-assignee="Puneet Kumar">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/DOC-3963" target="_blank">DOC-3963</a></td>
-            <td class="summary"><span title="Docs: [PayPal] ArmorCode Connect - Show for all work items limited to specific Issue Types">Docs: ArmorCode Connect — Issue Type Restriction</span></td>
-            <td><span class="badge badge-status-todo">To Do</span></td>
-            <td><span class="badge badge-p-medium">Medium</span></td>
-            <td>Puneet Kumar</td>
-            <td style="color:var(--muted)">—</td>
-            <td>2026-04-27</td>
-            <td>2026-05-21</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pager" id="pager-tasks" style="display:none"></div>
-  </div>
 
-  <!-- BUGS -->
-  <div class="section" id="section-bugs">
-    <div class="section-header">
-      <span style="font-size:18px">🐛</span>
-      <span class="section-title" style="color:var(--red)">Recent Bugs</span>
-      <span class="section-count" id="count-bugs">11</span>
-      <span style="font-size:11px;color:var(--muted);margin-left:8px;">Created in last 60 days OR open &amp; updated in last 10 days · ✅ 0 open bugs · ⚠ No ETAs set in Jira</span>
-    </div>
-    <div class="table-wrap">
-      <table id="table-bugs">
-        <thead>
-          <tr>
-            <th data-col="0" data-sorttype="key" onclick="sortSection(this)">Key</th>
+    <!-- STORIES SECTION -->
+    <div class="section" id="section-stories">
+      <div class="section-header">
+        <span class="section-title">📋 Stories / Feature Requests</span>
+        <span class="section-count" id="count-stories">0</span>
+      </div>
+      <div class="table-wrap">
+        <table id="table-stories">
+          <thead><tr>
+            <th data-col="0" data-sorttype="key"      onclick="sortSection(this)" style="width:120px">Key</th>
             <th>Summary</th>
-            <th>Status</th>
-            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)">Priority</th>
-            <th>Assignee</th>
-            <th data-col="5" data-sorttype="date" onclick="sortSection(this)">Created</th>
-            <th data-col="6" data-sorttype="date" onclick="sortSection(this)">Last Updated</th>
-            <th data-col="7" data-sorttype="date" onclick="sortSection(this)">ETA</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr data-type="Bug" data-priority="High" data-assignee="Salim Khan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-121065" target="_blank">ENG-121065</a></td>
-            <td class="summary"><span title="Jira plugin is unable to load jira project on configuration screen">Jira Plugin Unable to Load Project on Config Screen</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td>Salim Khan</td>
-            <td style="color:var(--muted)">2026-05-13</td>
-            <td>2026-05-18</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Urgent" data-assignee="Uma Somi Narasimhan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-118723" target="_blank">ENG-118723</a></td>
-            <td class="summary"><span title="[PayPal] [BUG][URG] Unable to open multiple tickets manually">[PayPal] Unable to Open Multiple Tickets Manually</span></td>
-            <td><span class="badge badge-status-default">Invalid</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Uma Somi Narasimhan</td>
-            <td style="color:var(--muted)">2026-04-30</td>
-            <td>2026-05-06</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Urgent" data-assignee="Rohan Shah">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-117758" target="_blank">ENG-117758</a></td>
-            <td class="summary"><span title="[PayPal] [BUG] Tickets being opened in Duplication for single finding">[PayPal] Duplicate Tickets Created for Single Finding</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Rohan Shah</td>
-            <td style="color:var(--muted)">2026-04-23</td>
-            <td>2026-05-03</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="High" data-assignee="Uma Somi Narasimhan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-117566" target="_blank">ENG-117566</a></td>
-            <td class="summary"><span title="[PayPal] Tickets Automatically Reopen After Detachment from Findings and Manual Closure">[PayPal] Tickets Auto-Reopen After Detachment &amp; Manual Close</span></td>
-            <td><span class="badge badge-status-default">Invalid</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td>Uma Somi Narasimhan</td>
-            <td style="color:var(--muted)">2026-04-22</td>
-            <td>2026-05-11</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Urgent" data-assignee="Balgovind Yadav">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-117352" target="_blank">ENG-117352</a></td>
-            <td class="summary"><span title="[PayPal] [BUG] Found on and Age columns are swapped in AC Connect CSV export">[PayPal] 'Found On' &amp; 'Age' Columns Swapped in CSV Export</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Balgovind Yadav</td>
-            <td style="color:var(--muted)">2026-04-21</td>
-            <td>2026-04-24</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Urgent" data-assignee="Uma Somi Narasimhan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-116695" target="_blank">ENG-116695</a></td>
-            <td class="summary"><span title="Investigate 12-34 hour delay between scan ingestion and New Scan runbook execution">12–34h Delay: Scan Ingestion → New Scan Runbook Trigger</span></td>
-            <td><span class="badge badge-status-default">Invalid</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Uma Somi Narasimhan</td>
-            <td style="color:var(--muted)">2026-04-14</td>
-            <td>2026-05-04</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="High" data-assignee="Nilesh Tadha">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-116604" target="_blank">ENG-116604</a></td>
-            <td class="summary"><span title="[PayPal] Same CVE vulnerability reported as both P1 and P2 in ArmorCode">[PayPal] Same CVE Reported as Both P1 and P2</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-high">High</span></td>
-            <td>Nilesh Tadha</td>
-            <td style="color:var(--muted)">2026-04-14</td>
-            <td>2026-05-07</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Highest" data-assignee="Ehtesham Hussain Pradhan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-116616" target="_blank">ENG-116616</a></td>
-            <td class="summary"><span title="[PayPal] Scheduled Runbook Not Processing Newly Ingested Findings — Manual Trigger Works">[PayPal] Scheduled Runbook Skipping Newly Ingested Findings</span></td>
-            <td><span class="badge badge-status-default">Invalid</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td>Ehtesham Hussain Pradhan</td>
-            <td style="color:var(--muted)">2026-04-14</td>
-            <td>2026-04-22</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Urgent" data-assignee="Balgovind Yadav">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-116586" target="_blank">ENG-116586</a></td>
-            <td class="summary"><span title="[PayPal] Component affected version and fixed version are switched on Jira Plugin">[PayPal] Affected &amp; Fixed Versions Switched in Jira Plugin</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-urgent">Urgent</span></td>
-            <td>Balgovind Yadav</td>
-            <td style="color:var(--muted)">2026-04-13</td>
-            <td>2026-04-22</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Highest" data-assignee="Saqeeb Shaikh">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-116091" target="_blank">ENG-116091</a></td>
-            <td class="summary"><span title="[PayPal] Multiple repository names found in GitHub Mappings causing 404 Error">[PayPal] Multiple Repo Names in GitHub Mappings Causing 404</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td>Saqeeb Shaikh</td>
-            <td style="color:var(--muted)">2026-04-09</td>
-            <td>2026-05-21</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-          <tr data-type="Bug" data-priority="Highest" data-assignee="Uma Somi Narasimhan">
-            <td class="key"><a href="https://armorcodeinc.atlassian.net/browse/ENG-115848" target="_blank">ENG-115848</a></td>
-            <td class="summary"><span title="[PayPal] [BUG] AQL Timing Out on RunBook multi-filter block">[PayPal] AQL Timing Out in Runbook Multi-Filter Block</span></td>
-            <td><span class="badge badge-status-devdone">Done</span></td>
-            <td><span class="badge badge-p-highest">Highest</span></td>
-            <td>Uma Somi Narasimhan</td>
-            <td style="color:var(--muted)">2026-04-07</td>
-            <td>2026-05-06</td>
-            <td style="color:var(--muted)">—</td>
-          </tr>
-        </tbody>
-      </table>
+            <th data-col="2" data-sorttype="text"     onclick="sortSection(this)" style="width:100px">Status</th>
+            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
+            <th style="width:140px">Assignee</th>
+            <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
+            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+          </tr></thead>
+          <tbody id="tbody-stories"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager-stories" style="display:none"></div>
     </div>
-    <div class="pager" id="pager-bugs" style="display:none"></div>
-  </div>
+
+    <!-- TASKS SECTION -->
+    <div class="section" id="section-tasks">
+      <div class="section-header">
+        <span class="section-title">✅ Tasks / Documentation</span>
+        <span class="section-count" id="count-tasks">0</span>
+      </div>
+      <div class="table-wrap">
+        <table id="table-tasks">
+          <thead><tr>
+            <th data-col="0" data-sorttype="key"      onclick="sortSection(this)" style="width:120px">Key</th>
+            <th>Summary</th>
+            <th data-col="2" data-sorttype="text"     onclick="sortSection(this)" style="width:100px">Status</th>
+            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
+            <th style="width:140px">Assignee</th>
+            <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
+            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+          </tr></thead>
+          <tbody id="tbody-tasks"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager-tasks" style="display:none"></div>
+    </div>
+
+    <!-- BUGS SECTION -->
+    <div class="section" id="section-bugs">
+      <div class="section-header">
+        <span class="section-title">🐛 Active Bugs</span>
+        <span class="section-count" id="count-bugs">0</span>
+      </div>
+      <div class="table-wrap">
+        <table id="table-bugs">
+          <thead><tr>
+            <th data-col="0" data-sorttype="key"      onclick="sortSection(this)" style="width:120px">Key</th>
+            <th>Summary</th>
+            <th data-col="2" data-sorttype="text"     onclick="sortSection(this)" style="width:100px">Status</th>
+            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
+            <th style="width:140px">Assignee</th>
+            <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
+            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Created</th>
+            <th data-col="7" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+          </tr></thead>
+          <tbody id="tbody-bugs"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager-bugs" style="display:none"></div>
+    </div>
+
+  </div><!-- /dashboard-content -->
 
 </main>
 
-<footer>ArmorCode CSE Dashboard · PayPal Account · Jira filter: <code>labels = PayPal</code> · May 24, 2026</footer>
-
-<script>
-  // Fetch user info from /api/me
-  fetch('/api/me').then(r => r.json()).then(u => {
-    if (u && u.name) {
-      document.getElementById('user-name').textContent = u.name;
-      document.getElementById('user-email').textContent = u.email || '';
-      if (u.photo) {
-        const img = document.getElementById('user-photo');
-        img.src = u.photo;
-        img.style.display = 'block';
-      }
-    }
-  }).catch(() => {});
-
-  const PAGE_SIZE = 5;
-  const sectionPages = { stories: 1, tasks: 1, bugs: 1 };
-  let currentType = 'all';
-  let currentSearch = '';
-
-  // Called from filter buttons (top bar)
-  function filterType(type, btn) {
-    currentType = type;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('stat-active'));
-    btn.classList.add('active');
-    Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
-    applyFilters();
-  }
-
-  // Called from stat cards — if the click landed on the Jira <a> link, let it navigate normally
-  function filterStat(type, card, event) {
-    if (event && event.target.closest('a')) return;
-    currentType = type;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('stat-active'));
-    if (card) card.classList.add('stat-active');
-    Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
-    applyFilters();
-    document.querySelector('.filters').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  function searchTickets(val) {
-    currentSearch = val.toLowerCase();
-    Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
-    applyFilters();
-  }
-
-  function changePage(sec, dir) {
-    sectionPages[sec] = Math.max(1, sectionPages[sec] + dir);
-    applyPagination();
-  }
-
-  function goToPage(sec, p) {
-    sectionPages[sec] = p;
-    applyPagination();
-  }
-
-  function applyFilters() {
-    const allRows = document.querySelectorAll('tbody tr');
-    let counts = { Story: 0, Task: 0, Bug: 0 };
-
-    allRows.forEach(row => {
-      if (row.classList.contains('child-row')) return; // tree children not filtered
-      const type     = row.dataset.type || '';
-      const priority = (row.dataset.priority || '').toLowerCase();
-      const assignee = (row.dataset.assignee || '').toLowerCase();
-      const text     = row.textContent.toLowerCase();
-
-      let show = true;
-      if (currentType === 'open'       && type === 'Bug')   show = false;
-      if (currentType === 'Story'      && type !== 'Story') show = false;
-      if (currentType === 'Task'       && type !== 'Task')  show = false;
-      if (currentType === 'Bug'        && type !== 'Bug')   show = false;
-      if (currentType === 'urgent'     && !['urgent','highest'].includes(priority)) show = false;
-      if (currentType === 'unassigned' && !assignee.includes('unassigned')) show = false;
-      if (currentType === 'duesoon'    && !row.querySelector('.due-soon')) show = false;
-      if (currentType === 'inprogress' && !row.querySelector('.badge-status-inprogress')) show = false;
-      if (currentSearch && !text.includes(currentSearch)) show = false;
-
-      row.dataset.filtered = show ? 'true' : 'false';
-      if (show) counts[type] = (counts[type] || 0) + 1;
-    });
-
-    // Update section-level counts
-    const storyCount = document.getElementById('count-stories');
-    const taskCount  = document.getElementById('count-tasks');
-    const bugCount   = document.getElementById('count-bugs');
-    if (storyCount) storyCount.textContent = counts.Story || 0;
-    if (taskCount)  taskCount.textContent  = counts.Task  || 0;
-    if (bugCount)   bugCount.textContent   = counts.Bug   || 0;
-
-    applyPagination();
-  }
-
-  function applyPagination() {
-    ['stories', 'tasks', 'bugs'].forEach(sec => {
-      const section = document.getElementById('section-' + sec);
-      if (!section) return;
-
-      const allRows    = Array.from(section.querySelectorAll('tbody tr'));
-      const filtered   = allRows.filter(r => r.dataset.filtered === 'true');
-      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-
-      // Clamp page
-      if (sectionPages[sec] > totalPages) sectionPages[sec] = totalPages;
-      const page  = sectionPages[sec];
-      const start = (page - 1) * PAGE_SIZE;
-      const end   = start + PAGE_SIZE;
-
-      // Show/hide rows (skip child-rows — controlled by tree toggle)
-      allRows.forEach(row => {
-        if (row.classList.contains('child-row')) return;
-        if (row.dataset.filtered !== 'true') {
-          row.style.display = 'none';
-        } else {
-          const idx = filtered.indexOf(row);
-          row.style.display = (idx >= start && idx < end) ? '' : 'none';
-        }
-      });
-
-      // Show/hide section
-      section.style.display = filtered.length === 0 ? 'none' : '';
-
-      // Render numbered pager
-      const pager = document.getElementById('pager-' + sec);
-      if (!pager) return;
-      if (filtered.length <= PAGE_SIZE) { pager.style.display = 'none'; return; }
-
-      let html = `<button class="pager-btn" onclick="goToPage('${sec}',${page-1})" ${page<=1?'disabled':''}>‹</button>`;
-      for (let p = 1; p <= totalPages; p++) {
-        html += `<button class="pager-num${p===page?' active':''}" onclick="goToPage('${sec}',${p})">${p}</button>`;
-      }
-      html += `<button class="pager-btn" onclick="goToPage('${sec}',${page+1})" ${page>=totalPages?'disabled':''}>›</button>`;
-      pager.innerHTML = html;
-      pager.style.display = 'flex';
-    });
-  }
-
-
-  // ── JIRA ACTION ICONS ─────────────────────────────────────────────────────
-  const JIRA_BASE  = 'https://armorcodeinc.atlassian.net';
-  const JIRA_EMAIL = 'unarasimhan@armorcode.io';
-  let _activeIssueKey = '';
-
-  function getToken()  { return localStorage.getItem('jira_api_token') || ''; }
-  function saveToken() {
-    const t = (document.getElementById('modal-token').value || '').trim();
-    if (!t) return;
-    localStorage.setItem('jira_api_token', t);
-    document.getElementById('modal-token-section').style.display = 'none';
-    showToast('✅ API token saved — ready to post comments', 'success');
-  }
-
-  function openTrackModal(issueKey, summary, eta) {
-    _activeIssueKey = issueKey;
-    document.getElementById('modal-title').textContent = '📊 On-Track Check · ' + issueKey;
-    document.getElementById('modal-subtitle').textContent = summary;
-    document.getElementById('modal-token-section').style.display = getToken() ? 'none' : 'block';
-    const etaLine = (eta && eta !== '—') ? 'Planned ETA: ' + eta : 'No ETA currently set in Jira';
-    document.getElementById('modal-comment').value =
-      'Hi team — checking in on ' + issueKey + '.\n\n' +
-      etaLine + '\n\n' +
-      'Is this on track for the planned release / sprint end date? Please share:\n' +
-      '  • Current target date / sprint ETA\n' +
-      '  • Any blockers or risks\n' +
-      '  • Confidence level (High / Medium / Low)';
-    document.getElementById('jira-modal').classList.add('open');
-  }
-
-  function closeModal() {
-    document.getElementById('jira-modal').classList.remove('open');
-  }
-
-  async function sendJiraComment() {
-    const token = getToken();
-    if (!token) {
-      document.getElementById('modal-token-section').style.display = 'block';
-      showToast('⚠️ Please save your Jira API token first', 'info');
-      return;
-    }
-    const text = document.getElementById('modal-comment').value.trim();
-    if (!text) return;
-
-    const btn = document.getElementById('modal-post-btn');
-    btn.disabled = true;
-    btn.textContent = 'Posting…';
-
-    // Build ADF body (paragraphs split on blank lines)
-    const paragraphs = text.split('\n\n').map(para => ({
-      type: 'paragraph',
-      content: [{ type: 'text', text: para }]
-    }));
-    const adfBody = { body: { type: 'doc', version: 1, content: paragraphs } };
-
-    const url  = JIRA_BASE + '/rest/api/3/issue/' + _activeIssueKey + '/comment';
-    const auth = btoa(JIRA_EMAIL + ':' + token);
-
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + auth,
-          'Content-Type':  'application/json',
-          'Accept':        'application/json'
-        },
-        body: JSON.stringify(adfBody)
-      });
-
-      if (resp.ok) {
-        closeModal();
-        showToast('✅ Comment posted to ' + _activeIssueKey, 'success');
-      } else if (resp.status === 401) {
-        localStorage.removeItem('jira_api_token');
-        document.getElementById('modal-token-section').style.display = 'block';
-        showToast('❌ Token invalid or expired — please re-enter', 'error');
-      } else {
-        const body = await resp.text().catch(() => '');
-        throw new Error('HTTP ' + resp.status + (body ? ': ' + body.slice(0, 120) : ''));
-      }
-    } catch (err) {
-      // CORS fallback — copy comment text to clipboard so user can paste manually
-      try {
-        await navigator.clipboard.writeText(text);
-        closeModal();
-        showToast('📋 Copied to clipboard — open ' + _activeIssueKey + ' in Jira and paste the comment', 'info');
-      } catch {
-        showToast('❌ Could not post. Check console for details.', 'error');
-        console.error('[Jira action]', err);
-      }
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '📤 Post to Jira';
-    }
-  }
-
-  function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className   = 'toast toast-' + type + ' show';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 4500);
-  }
-
-  // Init on load — inject action column + set filter state
-  document.addEventListener('DOMContentLoaded', () => {
-
-    // ── Exec summary "As of" date — always today ──────────────────────────
-    (function() {
-      var el = document.getElementById('exec-date');
-      if (!el) return;
-      var d = new Date();
-      var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      el.textContent = MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-    })();
-
-    // ── Inject Development column (all tables — live fetch from Jira) ───────
-    var ISSUE_IDS = {
-      'PROD-2285':'1510023','PROD-2287':'1510025','PROD-2286':'1510024',
-      'ENG-123339':'1750267','PROD-3211':'1726842','PROD-3316':'1756899',
-      'ENG-113400':'1687357','PROD-2831':'1645117','PROD-3259':'1742609',
-      'ENG-118446':'1759014','PROD-2856':'1651753','PROD-2843':'1648592',
-      'PROD-3086':'1684294','PROD-3127':'1700789',
-      'DOC-3925':'1744420','DOC-3963':'1770164',
-      'ENG-116091':'1734106','ENG-121065':'1805727','ENG-117566':'1759084',
-      'ENG-116604':'1744348','ENG-118723':'1777463','ENG-115848':'1729554',
-      'ENG-116695':'1745295','ENG-117758':'1762294','ENG-117352':'1757121',
-      'ENG-116616':'1744411','ENG-116586':'1742586'
-    };
-    function fmtDate(iso) {
-      if (!iso) return '';
-      var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var d = new Date(iso);
-      var h = d.getHours(), m = d.getMinutes();
-      var ampm = h >= 12 ? 'pm' : 'am';
-      h = h % 12 || 12;
-      return MONTHS[d.getMonth()] + ' ' + d.getDate() + ' ' + d.getFullYear()
-        + ', ' + h + ':' + (m < 10 ? '0' + m : m) + ampm;
-    }
-    function renderDevCell(td, key, data) {
-      var pr = data && data.summary && data.summary.pullrequest && data.summary.pullrequest.overall;
-      var br = data && data.summary && data.summary.branch && data.summary.branch.overall;
-      if ((!pr || pr.count === 0) && (!br || br.count === 0)) {
-        td.innerHTML = '';
-        return;
-      }
-      var html = '';
-      if (pr && pr.count > 0) {
-        var stateColors = { 'MERGED':'var(--green)', 'OPEN':'var(--blue)', 'DECLINED':'var(--red)' };
-        var stateIcons  = { 'MERGED':'✅', 'OPEN':'🔄', 'DECLINED':'❌' };
-        if (pr.details && pr.details.length > 0) {
-          html += pr.details.map(function(d) {
-            return '<span style="color:' + (stateColors[d.state]||'var(--muted)') + ';font-size:11px">'
-              + (stateIcons[d.state]||'•') + ' ' + d.count + ' ' + d.state + '</span>';
-          }).join(' ');
-        } else {
-          html += '<span style="color:' + (stateColors[pr.state]||'var(--muted)') + ';font-size:11px">'
-            + (stateIcons[pr.state]||'•') + ' ' + pr.count + ' PR</span>';
-        }
-        if (pr.lastUpdated) {
-          html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + fmtDate(pr.lastUpdated) + '</div>';
-        }
-      } else if (br && br.count > 0) {
-        html += '<span style="color:var(--blue);font-size:11px">🌿 ' + br.count + ' branch</span>';
-        if (br.lastUpdated) {
-          html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + fmtDate(br.lastUpdated) + '</div>';
-        }
-      }
-      td.innerHTML = html;
-    }
-    ['table-stories', 'table-tasks', 'table-bugs'].forEach(function(tableId) {
-      var tbl = document.getElementById(tableId);
-      if (!tbl) return;
-      var devTh = document.createElement('th');
-      devTh.textContent = 'Development';
-      devTh.style.cssText = 'min-width:150px';
-      tbl.querySelector('thead tr').appendChild(devTh);
-      tbl.querySelectorAll('tbody tr').forEach(function(row) {
-        var keyEl   = row.querySelector('td.key a');
-        var key     = keyEl ? keyEl.textContent.trim() : '';
-        var issueId = ISSUE_IDS[key];
-        var td      = document.createElement('td');
-        td.className = 'dev-cell';
-        if (!issueId) {
-          td.innerHTML = '';
-          row.appendChild(td);
-          return;
-        }
-        td.innerHTML = '<span style="color:var(--muted);font-size:11px">⏳</span>';
-        row.appendChild(td);
-        fetch('https://armorcodeinc.atlassian.net/rest/dev-status/latest/issue/summary?issueId=' + issueId, {
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        }).then(function(res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        }).then(function(data) {
-          renderDevCell(td, key, data);
-        }).catch(function() {
-          td.innerHTML = '';
-        });
-      });
-    });
-
-    // ── Update ETA from Sprint End Date (static map from Jira, refreshed 2026-05-24) ──
-    var SPRINT_ENDS = {
-      'ENG-113400': '2026-06-03',
-      'ENG-118446': '2026-06-03',
-      'DOC-3925':   '2026-05-28',
-      'DOC-3963':   '2026-05-28',
-      'ENG-121065': '2026-05-20',
-      'ENG-116091': '2026-05-13',
-      'ENG-117758': '2026-04-29',
-      'ENG-117352': '2026-04-22',
-      'ENG-116604': '2026-04-15',
-      'ENG-116586': '2026-04-15'
-    };
-    document.querySelectorAll('#table-stories tbody tr, #table-tasks tbody tr, #table-bugs tbody tr').forEach(function(row) {
-      var keyEl = row.querySelector('td.key a');
-      var key   = keyEl ? keyEl.textContent.trim() : '';
-      var end   = SPRINT_ENDS[key];
-      if (!end) return;
-      // ETA col index: Bugs = 7, Stories/Tasks = 5 (original static cols — Dev + Actions appended after)
-      var etaIdx = row.dataset.type === 'Bug' ? 7 : 5;
-      var etaTd  = row.querySelectorAll('td')[etaIdx];
-      if (!etaTd) return;
-      etaTd.textContent = end;
-      etaTd.className   = '';
-      etaTd.removeAttribute('style');
-      var now  = new Date(); now.setHours(0, 0, 0, 0);
-      var diff = (new Date(end + 'T00:00:00') - now) / 86400000;
-      if (diff < 0)       { etaTd.style.color = 'var(--red)'; }
-      else if (diff <= 7) { etaTd.className = 'due-soon'; }
-    });
-
-    // ── Inject Actions <th> header into each table ─────────────────────────
-    document.querySelectorAll('table thead tr').forEach(tr => {
-      const th = document.createElement('th');
-      th.textContent = 'Actions';
-      th.style.cssText = 'width:72px;text-align:center';
-      tr.appendChild(th);
-    });
-
-    // ── Inject action <td> into each data row ─────────────────────────────
-    document.querySelectorAll('tbody tr').forEach(row => {
-      const keyEl  = row.querySelector('td.key a');
-      const sumEl  = row.querySelector('td.summary span');
-      const issueKey = keyEl  ? keyEl.textContent.trim()  : '';
-      const summary  = sumEl  ? (sumEl.getAttribute('title') || sumEl.textContent).replace(/'/g, "\\'" ) : '';
-      const cells    = Array.from(row.querySelectorAll('td'));
-      // ETA: col index 5 for Stories/Tasks (7 cols), col index 7 for Bugs (8 cols)
-      const etaIdx = row.dataset.type === 'Bug' ? 7 : 5;
-      const eta    = cells[etaIdx] ? cells[etaIdx].textContent.trim() : '—';
-
-      const td = document.createElement('td');
-      td.style.textAlign = 'center';
-      var jiraIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle">'
-        + '<defs>'
-        + '<linearGradient id="jg1" x1="14" y1="14.5" x2="8" y2="20.5" gradientUnits="userSpaceOnUse"><stop stop-color="#0052CC"/><stop offset="1" stop-color="#2684FF"/></linearGradient>'
-        + '<linearGradient id="jg2" x1="10" y1="9.5" x2="16" y2="3.5" gradientUnits="userSpaceOnUse"><stop stop-color="#0052CC"/><stop offset="1" stop-color="#2684FF"/></linearGradient>'
-        + '</defs>'
-        + '<path d="M11.75 2L2 11.75l3.25 3.25L11.75 8.5l6.5 6.5L21.5 11.75 11.75 2z" fill="url(#jg2)"/>'
-        + '<path d="M11.75 22L21.5 12.25l-3.25-3.25L11.75 15.5l-6.5-6.5L2 12.25 11.75 22z" fill="url(#jg1)"/>'
-        + '</svg>';
-      td.innerHTML = '<button class="action-btn" title="Post on-track check comment to Jira" '
-        + 'onclick="openTrackModal(\'' + issueKey + '\',\'' + summary + '\',\'' + eta + '\')">'
-        + jiraIcon + '</button>';
-      row.appendChild(td);
-    });
-
-    document.querySelectorAll('tbody tr').forEach(r => { if (!r.classList.contains('child-row')) r.dataset.filtered = 'true'; });
-    applyPagination();
-  });
-</script>
-
-<script>
-// ── Tree expand/collapse for linked tickets ───────────────────────────────────
-function toggleChildren(parentKey, btn) {
-  var children = document.querySelectorAll('tr[data-parent="' + parentKey + '"]');
-  var isOpen = btn.classList.toggle('open');
-  children.forEach(function(row) {
-    row.style.display = isOpen ? '' : 'none';
-  });
-}
-
-// ── Ticket hover tooltips — event delegation, runs after full page load ──────
-(function() {
-  var TIPS = {
-    'PROD-2285': 'Track how ArmorCode agents are performing with real-time metrics and health monitoring. Helps PayPal see if agents are running correctly and catch issues early.',
-    'PROD-2287': 'Add validation and monitoring to confirm data syncs between systems are working. Prevents silent failures where data looks synced but isn\'t.',
-    'PROD-2286': 'Build workflows for security engineers to act on findings after a sync completes. Gives the team a structured way to triage and respond to new security data.',
-    'ENG-123339': 'Let users set default columns in ArmorCode Connect based on the issue type (bug, task, story, etc.). Avoids having to manually configure columns every time.',
-    'PROD-3211': 'Add support so ArmorCode can automatically discover and import assets from Traceable (API security tool). Reduces manual setup when onboarding Traceable findings.',
-    'PROD-3316': 'Ingest the exploitability rating (Easy/Moderate/Difficult) from Data Theorem into ArmorCode findings. Helps prioritize which vulnerabilities are actually exploitable.',
-    'ENG-113400': 'Enable ArmorCode to match GCP cloud resources using a Cloud Identifier for smarter asset correlation. Improves accuracy when linking findings to cloud assets.',
-    'PROD-2831': 'Enable metrics and monitoring dashboards for findings from the Traceable integration. PayPal needs visibility into Traceable scan health and finding trends.',
-    'PROD-3259': 'Correlate the same API vulnerability found in both production and pre-production environments. Helps avoid duplicate noise and links related findings together.',
-    'ENG-118446': 'Update the CrowdStrike script to handle new boolean flags for RCE and DoS findings. Fixes missing severity data in findings imported from CrowdStrike.',
-    'PROD-2856': 'Fix a bug where ArmorCode auto-creates subgroups in non-production environments even when no scans have run. Keeps the workspace clean and uncluttered.',
-    'PROD-2843': 'Sync Runbook configuration files to GitHub automatically for version control. Makes it easy to track changes, roll back, and audit runbook history.',
-    'PROD-3086': 'Add a filter in CrowdStrike Container Runtime to exclude old images based on creation date. Reduces noise from legacy containers no one is actively using.',
-    'PROD-3127': 'Improve the Slack integration to include trigger details in alerts and always run the Post-to-Slack step. Ensures the team gets complete, reliable notifications.',
-    'DOC-3925': 'Write docs explaining how to use ArmorCode Connect plugin with custom fields as column headers. Helps PayPal\'s team self-serve the configuration without support.',
-    'DOC-3963': 'Document how to restrict ArmorCode Connect columns to only show for specific Jira issue types. Clarifies a commonly asked configuration question.',
-    'ENG-116091': 'Multiple repo names in GitHub Mappings caused 404 errors when ArmorCode tried to fetch data. Fixed — mapping now resolves to the correct single repo.',
-    'ENG-121065': 'The Jira plugin couldn\'t load the project list on the configuration screen. Fixed — project picker now loads correctly.',
-    'ENG-117566': 'Jira tickets were automatically reopening after being manually closed and detached. Marked invalid — this behavior was by design.',
-    'ENG-116604': 'The same CVE was showing as both P1 and P2 severity due to duplicate ingestion logic. Fixed — now deduplicates correctly.',
-    'ENG-118723': 'Users couldn\'t manually open multiple Jira tickets at once from ArmorCode. Marked invalid — root cause was a user workflow issue.',
-    'ENG-115848': 'AQL queries in Runbook multi-filter blocks were timing out. Fixed — query optimization resolved the performance issue.',
-    'ENG-116695': 'New scan runbooks were delayed 12-34 hours before triggering after scan ingestion. Marked invalid — delay was within expected scheduling behavior.',
-    'ENG-117758': 'Single findings were generating duplicate Jira tickets. Fixed — deduplication logic now prevents multiple tickets for the same finding.',
-    'ENG-117352': 'The Found On and Age columns were swapped in ArmorCode Connect CSV exports. Fixed — columns now export in the correct order.',
-    'ENG-116616': 'Scheduled runbooks were skipping newly ingested findings; manual trigger worked fine. Marked invalid — scheduling gap was within expected tolerance.',
-    'ENG-116586': 'Component affected version and fixed version were displayed in the wrong order in the Jira plugin. Fixed — versions now show in the correct fields.'
-  };
-
-  // Build the global tooltip element
-  var tt = document.createElement('div');
-  tt.id = 'ticket-tooltip-global';
-  tt.style.cssText = 'display:none;position:fixed;z-index:9999;background:#222536;border:1px solid #6c63ff;border-radius:8px;padding:10px 14px;width:300px;font-size:12px;line-height:1.6;color:#e8eaf6;box-shadow:0 6px 24px rgba(0,0,0,0.6);pointer-events:none;white-space:normal;font-family:Segoe UI,system-ui,sans-serif;';
-  document.body.appendChild(tt);
-
-  // Event delegation — listen on the whole document, check if we're over a ticket link
-  document.addEventListener('mouseover', function(e) {
-    // Walk up to find an <a> whose text matches a known ticket key
-    var el = e.target;
-    while (el && el !== document.body) {
-      if (el.tagName === 'A' || el.tagName === 'TD') {
-        var txt = el.tagName === 'A' ? el.textContent.trim() : (el.querySelector('a') ? el.querySelector('a').textContent.trim() : '');
-        if (TIPS[txt]) {
-          tt.textContent = TIPS[txt];
-          tt.style.display = 'block';
-          moveTip(e);
-          return;
-        }
-      }
-      el = el.parentElement;
-    }
-    tt.style.display = 'none';
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (tt.style.display === 'block') moveTip(e);
-  });
-
-  document.addEventListener('mouseout', function(e) {
-    // Hide when mouse leaves the triggering element
-    var el = e.target;
-    var key = '';
-    if (el.tagName === 'A') key = el.textContent.trim();
-    else if (el.tagName === 'TD' && el.querySelector('a')) key = el.querySelector('a').textContent.trim();
-    if (TIPS[key]) tt.style.display = 'none';
-  });
-
-  function moveTip(e) {
-    var x = e.clientX + 18, y = e.clientY + 18;
-    if (x + 315 > window.innerWidth)  x = e.clientX - 320;
-    if (y + 120 > window.innerHeight) y = e.clientY - 90;
-    tt.style.left = x + 'px';
-    tt.style.top  = y + 'px';
-  }
-})();
-
-// ── Column sorting ────────────────────────────────────────────────────────────
-var _sortState = {}; // { tableId: { col: N, dir: 'asc'|'desc' } }
-var PRIORITY_RANK = { 'urgent':0, 'highest':1, 'high':2, 'medium':3, 'low':4 };
-
-function sortSection(th) {
-  var thead = th.closest('thead');
-  var table = th.closest('table');
-  if (!table) return;
-  var col      = parseInt(th.dataset.col);
-  var sorttype = th.dataset.sorttype || 'text';
-  var tableId  = table.id;
-  var prev     = _sortState[tableId] || {};
-  var dir      = (prev.col === col && prev.dir === 'asc') ? 'desc' : 'asc';
-  _sortState[tableId] = { col: col, dir: dir };
-
-  // Update header indicators
-  thead.querySelectorAll('th').forEach(function(h) { h.classList.remove('sort-asc','sort-desc'); });
-  th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
-
-  // Collect parent rows + their immediate children
-  var tbody  = table.querySelector('tbody');
-  var allRows = Array.from(tbody.querySelectorAll('tr'));
-  var groups = [];
-  allRows.forEach(function(row) {
-    if (row.classList.contains('child-row')) return;
-    var children = allRows.filter(function(r) { return r.dataset.parent && r.dataset.parent === row.dataset.treeId; });
-    groups.push({ parent: row, children: children });
-  });
-
-  // Sort groups by cell value
-  groups.sort(function(a, b) {
-    var aCell = a.parent.querySelectorAll('td')[col];
-    var bCell = b.parent.querySelectorAll('td')[col];
-    var aVal  = aCell ? (aCell.dataset.sort || aCell.textContent.trim()) : '';
-    var bVal  = bCell ? (bCell.dataset.sort || bCell.textContent.trim()) : '';
-
-    if (sorttype === 'priority') {
-      var aR = PRIORITY_RANK[aVal.toLowerCase()] !== undefined ? PRIORITY_RANK[aVal.toLowerCase()] : 99;
-      var bR = PRIORITY_RANK[bVal.toLowerCase()] !== undefined ? PRIORITY_RANK[bVal.toLowerCase()] : 99;
-      return dir === 'asc' ? aR - bR : bR - aR;
-    }
-    if (sorttype === 'date') {
-      var aD = (!aVal || aVal === '—') ? (dir==='asc'?new Date(9999,0):new Date(0)) : new Date(aVal);
-      var bD = (!bVal || bVal === '—') ? (dir==='asc'?new Date(9999,0):new Date(0)) : new Date(bVal);
-      return dir === 'asc' ? aD - bD : bD - aD;
-    }
-    // text / key
-    return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-  });
-
-  // Re-insert rows in sorted order (parent followed by its children)
-  groups.forEach(function(g) {
-    tbody.appendChild(g.parent);
-    g.children.forEach(function(c) { tbody.appendChild(c); });
-  });
-
-  // Reset to page 1 and re-paginate
-  var sec = tableId.replace('table-','');
-  if (typeof sectionPages !== 'undefined') { sectionPages[sec] = 1; }
-  if (typeof applyPagination === 'function') applyPagination();
-}
-</script>
-
-<script>
-// ── Status cell hover → live Jira comment tooltip ────────────────────────────
-(function() {
-  var JIRA_BASE  = 'https://armorcodeinc.atlassian.net';
-  var JIRA_EMAIL = 'unarasimhan@armorcode.io';
-  var cache      = {};   // key → text string (populated on first fetch)
-  var activeTd   = null;
-
-  // Create dedicated tooltip div
-  var stt = document.createElement('div');
-  stt.id  = 'status-tip';
-  stt.style.cssText = [
-    'display:none','position:fixed','z-index:10000',
-    'background:#181c2e','border:1px solid #3a3f6e',
-    'border-radius:8px','padding:10px 14px',
-    'max-width:300px','font-size:11.5px','line-height:1.65',
-    'color:#e8eaf6','box-shadow:0 6px 24px rgba(0,0,0,0.65)',
-    'pointer-events:none','white-space:pre-wrap',
-    'font-family:Segoe UI,system-ui,sans-serif'
-  ].join(';');
-  document.body.appendChild(stt);
-
-  // Extract plain text from Jira ADF body
-  function adfText(node) {
-    if (!node) return '';
-    if (node.type === 'text') return node.text || '';
-    if (Array.isArray(node.content)) return node.content.map(adfText).join('').replace(/\s+/g,' ').trim();
-    return '';
-  }
-
-  function getRowKey(td) {
-    var row = td.closest('tr');
-    if (!row) return '';
-    var a = row.querySelector('td.key a');
-    return a ? a.textContent.trim() : '';
-  }
-
-  function isStatusCell(td) {
-    var row = td.closest('tr');
-    if (!row || row.classList.contains('child-row')) return false;
-    return Array.from(row.querySelectorAll('td')).indexOf(td) === 2;
-  }
-
-  function render(text) {
-    stt.textContent = text;
-    stt.style.display = 'block';
-  }
-
-  function move(e) {
-    var x = e.clientX + 18, y = e.clientY + 20;
-    if (x + 310 > window.innerWidth)  x = e.clientX - 315;
-    if (y + 120 > window.innerHeight) y = e.clientY - 100;
-    stt.style.left = x + 'px';
-    stt.style.top  = y + 'px';
-  }
-
-  function load(key, td) {
-    if (cache[key] !== undefined) {
-      if (activeTd === td) render(cache[key]);
-      return;
-    }
-
-    // Require stored API token — same mechanism as the working comment modal.
-    // (credentials:include fails from file:// origin due to CORS null-origin restriction)
-    var token = localStorage.getItem('jira_api_token');
-    if (!token) {
-      var msg = 'ℹ️ API token not saved yet.\nClick the Jira △ button on any row to save it once.';
-      cache[key] = msg;
-      render(msg);
-      return;
-    }
-
-    cache[key] = '⏳ Loading latest activity…';
-    render(cache[key]);
-
-    fetch(JIRA_BASE + '/rest/api/3/issue/' + key + '?fields=comment', {
-      headers: {
-        'Accept':        'application/json',
-        'Authorization': 'Basic ' + btoa(JIRA_EMAIL + ':' + token)
-      }
-    })
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function(data) {
-      var comments = (data.fields && data.fields.comment && data.fields.comment.comments) || [];
-      var text;
-      if (comments.length > 0) {
-        var last   = comments[comments.length - 1];
-        var author = (last.author && last.author.displayName) || 'Someone';
-        var date   = (last.created || '').substring(0, 10);
-        var body   = adfText(last.body);
-        if (body.length > 130) body = body.substring(0, body.lastIndexOf(' ', 130)) + '…';
-        text = '💬 ' + author + '  ·  ' + date + '\n' + (body || '(no text)');
-      } else {
-        text = 'ℹ️ No comments yet on this ticket.';
-      }
-      cache[key] = text;
-      if (activeTd === td) render(text);
-    })
-    .catch(function(err) {
-      var t = '⚠️ Fetch failed (' + (err.message || 'error') + ').\nCheck your API token is valid — re-save via the Jira button.';
-      cache[key] = t;
-      if (activeTd === td) render(t);
-      delete cache[key]; // allow retry on next hover
-    });
-  }
-
-  document.addEventListener('mouseover', function(e) {
-    var td = e.target.closest('td');
-    if (!td || !isStatusCell(td)) return;
-    var key = getRowKey(td);
-    if (!key) return;
-    activeTd = td;
-    load(key, td);
-    move(e);
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (stt.style.display === 'block' && activeTd) move(e);
-  });
-
-  document.addEventListener('mouseout', function(e) {
-    var td = e.target.closest('td');
-    if (td && td === activeTd) {
-      stt.style.display = 'none';
-      activeTd = null;
-    }
-  });
-})();
-</script>
-
-<!-- ── JIRA COMMENT MODAL ───────────────────────────────────────────────── -->
+<footer>
+  ArmorCode CSE Dashboard &nbsp;·&nbsp; PayPal Account &nbsp;·&nbsp; Restricted to @armorcode.io
+</footer>
+
+<!-- JIRA COMMENT MODAL -->
 <div class="modal-overlay" id="jira-modal" onclick="if(event.target===this)closeModal()">
   <div class="modal-box">
     <div class="modal-title" id="modal-title">📊 On-Track Check</div>
@@ -1898,8 +647,684 @@ function sortSection(th) {
   </div>
 </div>
 
-<!-- ── TOAST ─────────────────────────────────────────────────────────────── -->
+<!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// UTILITY HELPERS
+// ═══════════════════════════════════════════════════════════════
+const JIRA_BASE = 'https://armorcodeinc.atlassian.net';
+const JIRA_USER = 'unarasimhan@armorcode.io';
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso.substring(0, 10);
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return M[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function etaColor(etaStr) {
+  if (!etaStr || etaStr === '—') return '';
+  const diff = (new Date(etaStr + 'T00:00:00') - new Date()) / 86400000;
+  if (diff < 0)       return 'style="color:var(--red);font-weight:600"';
+  if (diff <= 7)      return 'class="due-soon"';
+  return '';
+}
+
+function statusBadgeClass(s) {
+  const m = {
+    'in progress':'badge-status-inprogress', 'in-progress':'badge-status-inprogress',
+    'to do':'badge-status-todo', 'todo':'badge-status-todo', 'open':'badge-status-todo',
+    'new':'badge-status-new', 'backlog':'badge-status-backlog',
+    'scope':'badge-status-scope', 'scoping':'badge-status-scope',
+    'schedule':'badge-status-schedule', 'scheduled':'badge-status-schedule',
+    'dev done':'badge-status-devdone', 'done':'badge-status-devdone', 'finalize':'badge-status-finalize',
+    'requirements':'badge-status-requirements', 'need info':'badge-status-needinfo',
+  };
+  return 'badge ' + (m[(s||'').toLowerCase()] || 'badge-status-default');
+}
+
+function priorityBadgeClass(p) {
+  const m = { 'urgent':'badge-p-urgent','highest':'badge-p-highest','high':'badge-p-high','medium':'badge-p-medium','low':'badge-p-low' };
+  return 'badge ' + (m[(p||'').toLowerCase()] || 'badge-status-default');
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function sectionKey(type) {
+  const t = (type||'').toLowerCase();
+  if (t === 'bug') return 'bugs';
+  if (['task','sub-task','documentation','doc'].some(x => t.includes(x))) return 'tasks';
+  return 'stories'; // story, epic, feature, etc.
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════════
+async function loadTickets() {
+  document.getElementById('loading-state').style.display = 'flex';
+  document.getElementById('error-state').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/tickets');
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({ error: 'HTTP ' + resp.status }));
+      throw body;
+    }
+    const data = await resp.json();
+    renderDashboard(data);
+  } catch (err) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'block';
+    document.getElementById('error-msg').textContent = err.error || 'Unexpected error';
+    document.getElementById('error-detail').textContent = err.details || '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard(data) {
+  const tickets = data.tickets || [];
+
+  // Update timestamp
+  const d = data.fetchedAt ? new Date(data.fetchedAt) : new Date();
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const h = d.getHours(), mn = d.getMinutes(), ampm = h >= 12 ? 'pm' : 'am';
+  document.getElementById('last-updated').textContent =
+    M[d.getMonth()] + ' ' + d.getDate() + ' ' + d.getFullYear() +
+    ', ' + (h%12||12) + ':' + (mn < 10 ? '0'+mn : mn) + ampm;
+
+  // Categorize
+  const stories = [], tasks = [], bugs = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  tickets.forEach(t => {
+    const sec = sectionKey(t.type);
+    if (sec === 'bugs') bugs.push(t);
+    else if (sec === 'tasks') tasks.push(t);
+    else stories.push(t);
+  });
+
+  // Compute stat card numbers
+  const allNonBug = [...stories, ...tasks];
+  const unassigned = tickets.filter(t => !t.assignee).length;
+  const dueSoon = tickets.filter(t => {
+    const eta = t.eta || t.sprintEnd || t.duedate;
+    if (!eta) return false;
+    const diff = (new Date(eta + 'T00:00:00') - today) / 86400000;
+    return diff >= 0 && diff <= 7;
+  }).length;
+  const inProgress = tickets.filter(t => (t.status||'').toLowerCase().includes('progress')).length;
+  const withETA = tickets.filter(t => t.eta || t.sprintEnd).length;
+
+  // JQL links for stat cards
+  const JBASE = JIRA_BASE + '/issues/?jql=';
+  const baseJQL = 'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC) AND created >= -90d AND "zendesk status[short text]" !~ "Solved" AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred") AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)';
+
+  renderStatCards([
+    { num: allNonBug.length,   color: 'c-accent',  label: 'Open Tickets',  jql: baseJQL + ' AND issuetype != Bug ORDER BY priority ASC' },
+    { num: bugs.length,        color: 'c-red',     label: 'Active Bugs',   jql: baseJQL + ' AND issuetype = Bug ORDER BY updated DESC' },
+    { num: stories.length,     color: 'c-pp',      label: 'Stories / FRs', jql: baseJQL + ' AND issuetype in (Story, Epic) ORDER BY priority ASC' },
+    { num: tasks.length,       color: 'c-blue',    label: 'Tasks / Docs',  jql: baseJQL + ' AND issuetype in (Task, Sub-task, Documentation) ORDER BY priority ASC' },
+    { num: unassigned,         color: 'c-orange',  label: 'Unassigned',    jql: baseJQL + ' AND assignee is EMPTY ORDER BY priority ASC' },
+    { num: dueSoon,            color: 'c-yellow',  label: 'Due Soon',      jql: baseJQL + ' AND (duedate <= 7d OR sprint in openSprints()) ORDER BY priority ASC' },
+    { num: inProgress,         color: 'c-green',   label: 'In Progress',   jql: baseJQL + ' AND status = "In Progress" ORDER BY updated DESC' },
+  ]);
+
+  // Exec summary — show top 10 by priority (urgent/highest first), filtered
+  const PRIORITY_RANK = { urgent:0, highest:1, high:2, medium:3, low:4 };
+  const sorted = [...tickets].sort((a,b) =>
+    (PRIORITY_RANK[(a.priority||'').toLowerCase()] ?? 9) -
+    (PRIORITY_RANK[(b.priority||'').toLowerCase()] ?? 9)
+  );
+  const execTickets = sorted.slice(0, 10);
+
+  document.getElementById('exec-headline').innerHTML =
+    '<strong style="color:var(--pp-light)">' + tickets.length + ' open tickets</strong>' +
+    ' &nbsp;·&nbsp; <strong style="color:var(--red)">' + bugs.length + ' active bugs</strong>' +
+    ' &nbsp;·&nbsp; <strong style="color:var(--orange)">' + unassigned + ' unassigned</strong>' +
+    ' &nbsp;·&nbsp; ' + withETA + ' items with ETAs' +
+    ' &nbsp;·&nbsp; As of <span id="exec-date">' +
+      M[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '</span>';
+
+  const execTbody = document.getElementById('exec-tbody');
+  execTbody.innerHTML = execTickets.map(t => {
+    const eta = t.eta || t.sprintEnd || t.duedate;
+    const etaDisp = eta ? fmtDate(eta) : '—';
+    const etaAttr = eta ? ` data-sort="${eta}"` : '';
+    const etaStyle = etaColor(eta);
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" style="color:var(--accent)">${escHtml(t.key)}</a></td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.summary)}">${escHtml(t.summary)}</td>
+      <td><span class="${statusBadgeClass(t.status)}" style="font-size:10px">${escHtml(t.status)}</span></td>
+      <td><span class="${priorityBadgeClass(t.priority)}" style="font-size:10px">${escHtml(t.priority||'—')}</span></td>
+      <td style="font-size:12px;color:${t.assignee ? 'var(--text)' : 'var(--red)'}">
+        ${t.assignee ? escHtml(t.assignee) : '⚠ Unassigned'}</td>
+      <td${etaAttr} ${etaStyle}>${etaDisp}</td>
+      <td style="font-size:11px;color:var(--muted)">${t.created ? t.created.substring(0,10) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Render ticket rows for each section
+  renderSection('stories', stories, false);
+  renderSection('tasks',   tasks,   false);
+  renderSection('bugs',    bugs,    true);
+
+  // Show dashboard, hide loading
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+
+  // After DOM is populated, inject dev column + action buttons, init filters
+  setTimeout(() => {
+    injectDevColumns(tickets);
+    injectActionButtons();
+    document.querySelectorAll('tbody tr').forEach(r => {
+      if (!r.classList.contains('child-row')) r.dataset.filtered = 'true';
+    });
+    updateSectionCounts();
+    applyPagination();
+  }, 0);
+}
+
+function renderStatCards(cards) {
+  const JBASE = JIRA_BASE + '/issues/?jql=';
+  document.getElementById('stat-cards').innerHTML = cards.map((c, i) => {
+    const filterType = ['all','Bug','Story','Task','urgent','unassigned','duesoon','inprogress'][i] || 'all';
+    return `<div class="stat-card" onclick="filterStat('${filterType}',this,event)">
+      <div class="stat-num ${c.color}">
+        <a href="${JBASE}${encodeURIComponent(c.jql)}" target="_blank" onclick="event.stopPropagation()">${c.num}</a>
+      </div>
+      <div class="stat-label">${c.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSection(sec, tickets, isBug) {
+  const tbody = document.getElementById('tbody-' + sec);
+  if (!tickets.length) {
+    tbody.innerHTML = `<tr><td colspan="${isBug?8:7}" style="text-align:center;color:var(--muted);padding:28px">No ${sec} found</td></tr>`;
+    document.getElementById('section-' + sec).style.display = 'none';
+    document.getElementById('count-' + sec).textContent = '0';
+    return;
+  }
+  document.getElementById('count-' + sec).textContent = tickets.length;
+  document.getElementById('section-' + sec).style.display = '';
+
+  tbody.innerHTML = tickets.map(t => {
+    const eta    = t.eta || t.sprintEnd || t.duedate;
+    const etaDisp = eta ? fmtDate(eta) : '—';
+    const etaAttr = eta ? ` data-sort="${eta}"` : '';
+    const etaS    = etaColor(eta);
+    const updDisp = t.updated ? fmtDate(t.updated) : '—';
+    const creDisp = t.created ? t.created.substring(0,10) : '—';
+    const priClass  = priorityBadgeClass(t.priority);
+    const statClass = statusBadgeClass(t.status);
+    const assigneeHtml = t.assignee
+      ? `<span style="font-size:12px">${escHtml(t.assignee)}</span>`
+      : `<span style="color:var(--orange);font-size:12px">⚠ Unassigned</span>`;
+
+    // data attrs for filter/sort
+    const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}"`;
+
+    let cells = `
+      <td class="key"><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
+      <td class="summary"><span title="${escHtml(t.summary)}">${escHtml(t.summary)}</span></td>
+      <td><span class="${statClass}">${escHtml(t.status)}</span></td>
+      <td><span class="${priClass}">${escHtml(t.priority||'—')}</span></td>
+      <td>${assigneeHtml}</td>
+      <td${etaAttr} ${etaS}>${etaDisp}</td>`;
+
+    if (isBug) {
+      cells += `<td style="font-size:11px;color:var(--muted)">${creDisp}</td>
+                <td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
+    } else {
+      cells += `<td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
+    }
+
+    return `<tr ${dataAttrs}>${cells}</tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEV COLUMN INJECTION (uses issue.id → Jira dev-status API)
+// ═══════════════════════════════════════════════════════════════
+function injectDevColumns(tickets) {
+  const idMap = {};
+  tickets.forEach(t => { if (t.id) idMap[t.key] = t.id; });
+
+  function fmtDT(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const h = d.getHours(), mn = d.getMinutes(), ap = h>=12?'pm':'am';
+    return M[d.getMonth()]+' '+d.getDate()+' '+d.getFullYear()+', '+(h%12||12)+':'+(mn<10?'0'+mn:mn)+ap;
+  }
+
+  function renderDevCell(td, data) {
+    const pr = data && data.summary && data.summary.pullrequest && data.summary.pullrequest.overall;
+    const br = data && data.summary && data.summary.branch && data.summary.branch.overall;
+    if ((!pr || pr.count === 0) && (!br || br.count === 0)) { td.innerHTML = ''; return; }
+    const SC = { 'MERGED':'var(--green)', 'OPEN':'var(--blue)', 'DECLINED':'var(--red)' };
+    const SI = { 'MERGED':'✅', 'OPEN':'🔄', 'DECLINED':'❌' };
+    let html = '';
+    if (pr && pr.count > 0) {
+      if (pr.details && pr.details.length > 0) {
+        html += pr.details.map(d => `<span style="color:${SC[d.state]||'var(--muted)'};font-size:11px">${SI[d.state]||'•'} ${d.count} ${d.state}</span>`).join(' ');
+      } else {
+        html += `<span style="color:${SC[pr.state]||'var(--muted)'};font-size:11px">${SI[pr.state]||'•'} ${pr.count} PR</span>`;
+      }
+      if (pr.lastUpdated) html += `<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDT(pr.lastUpdated)}</div>`;
+    } else if (br && br.count > 0) {
+      html += `<span style="color:var(--blue);font-size:11px">🌿 ${br.count} branch</span>`;
+      if (br.lastUpdated) html += `<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDT(br.lastUpdated)}</div>`;
+    }
+    td.innerHTML = html;
+  }
+
+  ['table-stories','table-tasks','table-bugs'].forEach(tableId => {
+    const tbl = document.getElementById(tableId);
+    if (!tbl) return;
+    const devTh = document.createElement('th');
+    devTh.textContent = 'Development';
+    devTh.style.minWidth = '150px';
+    tbl.querySelector('thead tr').appendChild(devTh);
+    tbl.querySelectorAll('tbody tr').forEach(row => {
+      const keyEl = row.querySelector('td.key a');
+      const key   = keyEl ? keyEl.textContent.trim() : '';
+      const issueId = idMap[key];
+      const td    = document.createElement('td');
+      td.className = 'dev-cell';
+      if (!issueId) { td.innerHTML = ''; row.appendChild(td); return; }
+      td.innerHTML = '<span style="color:var(--muted);font-size:11px">⏳</span>';
+      row.appendChild(td);
+      fetch(JIRA_BASE + '/rest/dev-status/latest/issue/summary?issueId=' + issueId, {
+        credentials: 'include', headers: { 'Accept': 'application/json' }
+      }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => renderDevCell(td, d))
+        .catch(() => { td.innerHTML = ''; });
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTION BUTTON INJECTION
+// ═══════════════════════════════════════════════════════════════
+function injectActionButtons() {
+  const jiraIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle">
+    <defs>
+      <linearGradient id="jg1" x1="14" y1="14.5" x2="8" y2="20.5" gradientUnits="userSpaceOnUse"><stop stop-color="#0052CC"/><stop offset="1" stop-color="#2684FF"/></linearGradient>
+      <linearGradient id="jg2" x1="10" y1="9.5" x2="16" y2="3.5" gradientUnits="userSpaceOnUse"><stop stop-color="#0052CC"/><stop offset="1" stop-color="#2684FF"/></linearGradient>
+    </defs>
+    <path d="M11.571 11.715 6.286 6.286a.857.857 0 0 0-1.215 0l-3.5 3.5a.857.857 0 0 0 0 1.214l4.786 4.786a.857.857 0 0 0 1.215 0l4-4a.857.857 0 0 0 0-1.071Z" fill="url(#jg1)"/>
+    <path d="m22.429 10.786-4.786-4.786a.857.857 0 0 0-1.215 0l-4 4a.857.857 0 0 0 0 1.071l5.286 5.429a.857.857 0 0 0 1.215 0l3.5-3.5a.857.857 0 0 0 0-1.214Z" fill="url(#jg2)"/>
+  </svg>`;
+
+  document.querySelectorAll('table thead tr').forEach(tr => {
+    const th = document.createElement('th');
+    th.textContent = 'Actions';
+    th.style.cssText = 'width:72px;text-align:center';
+    tr.appendChild(th);
+  });
+
+  document.querySelectorAll('tbody tr').forEach(row => {
+    if (row.classList.contains('child-row')) return;
+    const keyEl  = row.querySelector('td.key a');
+    const sumEl  = row.querySelector('td.summary span');
+    const issueKey = keyEl ? keyEl.textContent.trim() : '';
+    const summary  = sumEl ? (sumEl.getAttribute('title') || sumEl.textContent).replace(/'/g, "\\'") : '';
+    const cells    = Array.from(row.querySelectorAll('td'));
+    const isBug    = row.dataset.type === 'Bug';
+    const etaIdx   = isBug ? 5 : 5;
+    const eta      = cells[etaIdx] ? cells[etaIdx].textContent.trim() : '—';
+    const td = document.createElement('td');
+    td.style.textAlign = 'center';
+    td.innerHTML = `<button class="action-btn" title="Post on-track check comment to Jira"
+      onclick="openTrackModal('${issueKey}','${summary}','${eta}')">${jiraIcon}</button>`;
+    row.appendChild(td);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTERS & PAGINATION
+// ═══════════════════════════════════════════════════════════════
+const PAGE_SIZE = 5;
+const sectionPages = { stories: 1, tasks: 1, bugs: 1 };
+let currentType = 'all';
+let currentSearch = '';
+
+function filterType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('stat-active'));
+  btn.classList.add('active');
+  Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
+  applyFilters();
+}
+
+function filterStat(type, card, event) {
+  if (event && event.target.closest('a')) return;
+  currentType = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('stat-active'));
+  if (card) card.classList.add('stat-active');
+  Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
+  applyFilters();
+  document.querySelector('.filters').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function searchTickets(val) {
+  currentSearch = val.toLowerCase();
+  Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
+  applyFilters();
+}
+
+function applyFilters() {
+  const allRows = document.querySelectorAll('tbody tr');
+  allRows.forEach(row => {
+    if (row.classList.contains('child-row')) return;
+    const type     = row.dataset.type || '';
+    const priority = (row.dataset.priority || '').toLowerCase();
+    const assignee = (row.dataset.assignee || '').toLowerCase();
+    const text     = row.textContent.toLowerCase();
+    let show = true;
+    if (currentType === 'Story'      && type !== 'Story') show = false;
+    if (currentType === 'Task'       && type !== 'Task')  show = false;
+    if (currentType === 'Bug'        && type !== 'Bug')   show = false;
+    if (currentType === 'urgent'     && !['urgent','highest'].includes(priority)) show = false;
+    if (currentType === 'unassigned' && !assignee.includes('unassigned')) show = false;
+    if (currentType === 'duesoon'    && !row.querySelector('.due-soon')) show = false;
+    if (currentType === 'inprogress' && !row.querySelector('.badge-status-inprogress')) show = false;
+    if (currentSearch && !text.includes(currentSearch)) show = false;
+    row.dataset.filtered = show ? 'true' : 'false';
+  });
+  updateSectionCounts();
+  applyPagination();
+}
+
+function updateSectionCounts() {
+  ['stories','tasks','bugs'].forEach(sec => {
+    const rows = document.querySelectorAll(`#section-${sec} tbody tr:not(.child-row)`);
+    const vis  = Array.from(rows).filter(r => r.dataset.filtered === 'true').length;
+    const el   = document.getElementById('count-' + sec);
+    if (el) el.textContent = vis;
+  });
+}
+
+function changePage(sec, dir) {
+  sectionPages[sec] = Math.max(1, sectionPages[sec] + dir);
+  applyPagination();
+}
+
+function goToPage(sec, p) {
+  sectionPages[sec] = p;
+  applyPagination();
+}
+
+function applyPagination() {
+  ['stories','tasks','bugs'].forEach(sec => {
+    const section = document.getElementById('section-' + sec);
+    if (!section) return;
+    const allRows  = Array.from(section.querySelectorAll('tbody tr'));
+    const filtered = allRows.filter(r => !r.classList.contains('child-row') && r.dataset.filtered === 'true');
+    const total    = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (sectionPages[sec] > total) sectionPages[sec] = total;
+    const page = sectionPages[sec];
+    const start = (page - 1) * PAGE_SIZE;
+    const end   = start + PAGE_SIZE;
+    allRows.forEach(row => {
+      if (row.classList.contains('child-row')) return;
+      if (row.dataset.filtered !== 'true') { row.style.display = 'none'; return; }
+      const idx = filtered.indexOf(row);
+      row.style.display = (idx >= start && idx < end) ? '' : 'none';
+    });
+    section.style.display = filtered.length === 0 ? 'none' : '';
+    const pager = document.getElementById('pager-' + sec);
+    if (!pager) return;
+    if (filtered.length <= PAGE_SIZE) { pager.style.display = 'none'; return; }
+    let html = `<button class="pager-btn" onclick="changePage('${sec}',-1)" ${page<=1?'disabled':''}>‹</button>`;
+    for (let p = 1; p <= total; p++) {
+      html += `<button class="pager-num${p===page?' active':''}" onclick="goToPage('${sec}',${p})">${p}</button>`;
+    }
+    html += `<button class="pager-btn" onclick="changePage('${sec}',1)" ${page>=total?'disabled':''}>›</button>`;
+    pager.innerHTML = html;
+    pager.style.display = 'flex';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JIRA COMMENT MODAL
+// ═══════════════════════════════════════════════════════════════
+let _activeIssueKey = '';
+
+function getToken()  { return localStorage.getItem('jira_api_token') || ''; }
+function saveToken() {
+  const t = (document.getElementById('modal-token').value || '').trim();
+  if (!t) return;
+  localStorage.setItem('jira_api_token', t);
+  document.getElementById('modal-token-section').style.display = 'none';
+  showToast('✅ API token saved — ready to post comments', 'success');
+}
+
+function openTrackModal(issueKey, summary, eta) {
+  _activeIssueKey = issueKey;
+  document.getElementById('modal-title').textContent = '📊 On-Track Check · ' + issueKey;
+  document.getElementById('modal-subtitle').textContent = summary;
+  document.getElementById('modal-token-section').style.display = getToken() ? 'none' : 'block';
+  const etaLine = (eta && eta !== '—') ? 'Planned ETA: ' + eta : 'No ETA currently set in Jira';
+  document.getElementById('modal-comment').value =
+    'Hi team — checking in on ' + issueKey + '.\n\n' + etaLine + '\n\n' +
+    'Is this on track for the planned release / sprint end date? Please share:\n' +
+    '  • Current target date / sprint ETA\n' +
+    '  • Any blockers or risks\n' +
+    '  • Confidence level (High / Medium / Low)';
+  document.getElementById('jira-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('jira-modal').classList.remove('open');
+}
+
+async function sendJiraComment() {
+  const token = getToken();
+  if (!token) {
+    document.getElementById('modal-token-section').style.display = 'block';
+    showToast('⚠️ Please save your Jira API token first', 'info');
+    return;
+  }
+  const text = document.getElementById('modal-comment').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('modal-post-btn');
+  btn.disabled = true; btn.textContent = 'Posting…';
+  const paragraphs = text.split('\n\n').map(p => ({ type:'paragraph', content:[{ type:'text', text:p }] }));
+  const body = { body:{ type:'doc', version:1, content:paragraphs } };
+  const url  = JIRA_BASE + '/rest/api/3/issue/' + _activeIssueKey + '/comment';
+  const auth = btoa(JIRA_USER + ':' + token);
+  try {
+    const resp = await fetch(url, {
+      method:'POST',
+      headers:{ 'Authorization':'Basic '+auth, 'Content-Type':'application/json', 'Accept':'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (resp.ok) {
+      closeModal();
+      showToast('✅ Comment posted to ' + _activeIssueKey, 'success');
+    } else if (resp.status === 401) {
+      localStorage.removeItem('jira_api_token');
+      document.getElementById('modal-token-section').style.display = 'block';
+      showToast('❌ Token invalid or expired — please re-enter', 'error');
+    } else {
+      const b = await resp.text().catch(() => '');
+      throw new Error('HTTP ' + resp.status + (b ? ': ' + b.slice(0,120) : ''));
+    }
+  } catch (err) {
+    try {
+      await navigator.clipboard.writeText(text);
+      closeModal();
+      showToast('📋 Copied to clipboard — open ' + _activeIssueKey + ' in Jira and paste', 'info');
+    } catch {
+      showToast('❌ Could not post. Check console.', 'error');
+      console.error('[Jira action]', err);
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = '📤 Post to Jira';
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast toast-' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER INFO
+// ═══════════════════════════════════════════════════════════════
+fetch('/api/me').then(r => r.json()).then(u => {
+  if (u && u.name) {
+    document.getElementById('user-name').textContent = u.name;
+    document.getElementById('user-email').textContent = u.email || '';
+    if (u.photo) {
+      const img = document.getElementById('user-photo');
+      img.src = u.photo; img.style.display = 'block';
+    }
+  }
+}).catch(() => {});
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', loadTickets);
+</script>
+
+<script>
+// ── Column sorting ─────────────────────────────────────────────
+var _sortState = {};
+var PRIORITY_RANK = { 'urgent':0, 'highest':1, 'high':2, 'medium':3, 'low':4 };
+
+function sortSection(th) {
+  var thead = th.closest('thead');
+  var table = th.closest('table');
+  if (!table) return;
+  var col      = parseInt(th.dataset.col);
+  var sorttype = th.dataset.sorttype || 'text';
+  var tableId  = table.id;
+  var prev     = _sortState[tableId] || {};
+  var dir      = (prev.col === col && prev.dir === 'asc') ? 'desc' : 'asc';
+  _sortState[tableId] = { col: col, dir: dir };
+  thead.querySelectorAll('th').forEach(function(h) { h.classList.remove('sort-asc','sort-desc'); });
+  th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  var tbody  = table.querySelector('tbody');
+  var allRows = Array.from(tbody.querySelectorAll('tr'));
+  var groups = [];
+  allRows.forEach(function(row) {
+    if (row.classList.contains('child-row')) return;
+    var children = allRows.filter(function(r) { return r.dataset.parent && r.dataset.parent === row.dataset.treeId; });
+    groups.push({ parent: row, children: children });
+  });
+  groups.sort(function(a, b) {
+    var aCell = a.parent.querySelectorAll('td')[col];
+    var bCell = b.parent.querySelectorAll('td')[col];
+    var aVal  = aCell ? (aCell.dataset.sort || aCell.textContent.trim()) : '';
+    var bVal  = bCell ? (bCell.dataset.sort || bCell.textContent.trim()) : '';
+    if (sorttype === 'priority') {
+      var aR = PRIORITY_RANK[aVal.toLowerCase()] !== undefined ? PRIORITY_RANK[aVal.toLowerCase()] : 99;
+      var bR = PRIORITY_RANK[bVal.toLowerCase()] !== undefined ? PRIORITY_RANK[bVal.toLowerCase()] : 99;
+      return dir === 'asc' ? aR - bR : bR - aR;
+    }
+    if (sorttype === 'date') {
+      var aD = (!aVal || aVal === '—') ? (dir==='asc'?new Date(9999,0):new Date(0)) : new Date(aVal);
+      var bD = (!bVal || bVal === '—') ? (dir==='asc'?new Date(9999,0):new Date(0)) : new Date(bVal);
+      return dir === 'asc' ? aD - bD : bD - aD;
+    }
+    return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+  groups.forEach(function(g) {
+    tbody.appendChild(g.parent);
+    g.children.forEach(function(c) { tbody.appendChild(c); });
+  });
+  var sec = tableId.replace('table-','');
+  if (typeof sectionPages !== 'undefined') sectionPages[sec] = 1;
+  if (typeof applyPagination === 'function') applyPagination();
+}
+</script>
+
+<script>
+// ── Status cell hover → live Jira comment tooltip ─────────────
+(function() {
+  var cache = {}, activeTd = null;
+  var stt = document.createElement('div');
+  stt.style.cssText = 'display:none;position:fixed;z-index:10000;background:#181c2e;border:1px solid #3a3f6e;border-radius:8px;padding:10px 14px;max-width:300px;font-size:11.5px;line-height:1.65;color:#e8eaf6;box-shadow:0 6px 24px rgba(0,0,0,0.65);pointer-events:none;white-space:pre-wrap;font-family:Segoe UI,system-ui,sans-serif';
+  document.body.appendChild(stt);
+
+  function adfText(node) {
+    if (!node) return '';
+    if (node.type === 'text') return node.text || '';
+    if (Array.isArray(node.content)) return node.content.map(adfText).join('').replace(/\s+/g,' ').trim();
+    return '';
+  }
+  function getRowKey(td) {
+    var row = td.closest('tr'); if (!row) return '';
+    var a = row.querySelector('td.key a'); return a ? a.textContent.trim() : '';
+  }
+  function isStatusCell(td) {
+    var row = td.closest('tr');
+    if (!row || row.classList.contains('child-row')) return false;
+    return Array.from(row.querySelectorAll('td')).indexOf(td) === 2;
+  }
+  function render(text) { stt.textContent = text; stt.style.display = 'block'; }
+  function move(e) {
+    var x = e.clientX+18, y = e.clientY+20;
+    if (x+310 > window.innerWidth) x = e.clientX-315;
+    if (y+120 > window.innerHeight) y = e.clientY-100;
+    stt.style.left = x+'px'; stt.style.top = y+'px';
+  }
+  function load(key, td) {
+    if (cache[key] !== undefined) { if (activeTd === td) render(cache[key]); return; }
+    var token = localStorage.getItem('jira_api_token');
+    if (!token) {
+      cache[key] = 'ℹ️ API token not saved yet.\nClick the Jira △ button on any row to save it once.';
+      render(cache[key]); return;
+    }
+    cache[key] = '⏳ Loading latest activity…'; render(cache[key]);
+    fetch(JIRA_BASE + '/rest/api/3/issue/' + key + '?fields=comment', {
+      headers: { 'Accept':'application/json', 'Authorization':'Basic '+btoa(JIRA_USER+':'+token) }
+    }).then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data) {
+      var comments = (data.fields && data.fields.comment && data.fields.comment.comments) || [];
+      var text;
+      if (comments.length > 0) {
+        var last = comments[comments.length-1];
+        var author = (last.author && last.author.displayName) || 'Someone';
+        var date   = (last.created||'').substring(0,10);
+        var body   = adfText(last.body);
+        if (body.length > 130) body = body.substring(0, body.lastIndexOf(' ',130)) + '…';
+        text = '💬 ' + author + '  ·  ' + date + '\n' + (body||'(no text)');
+      } else { text = 'ℹ️ No comments yet on this ticket.'; }
+      cache[key] = text;
+      if (activeTd === td) render(text);
+    }).catch(function(err) {
+      var t = '⚠️ Fetch failed (' + (err.message||'error') + ').\nRe-save token via the Jira button.';
+      cache[key] = t; if (activeTd === td) render(t); delete cache[key];
+    });
+  }
+  document.addEventListener('mouseover', function(e) {
+    var td = e.target.closest('td'); if (!td || !isStatusCell(td)) return;
+    var key = getRowKey(td); if (!key) return;
+    activeTd = td; load(key,td); move(e);
+  });
+  document.addEventListener('mousemove', function(e) { if (stt.style.display==='block' && activeTd) move(e); });
+  document.addEventListener('mouseout', function(e) {
+    var td = e.target.closest('td'); if (td && td === activeTd) { stt.style.display='none'; activeTd=null; }
+  });
+})();
+</script>
 
 </body>
 </html>

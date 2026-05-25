@@ -157,6 +157,76 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ name: req.user.name, email: req.user.email, photo: req.user.photo });
 });
 
+// ── Jira tickets proxy (PayPal JQL) ────────────────────────────────────────
+app.get('/api/tickets', requireAuth, async (req, res) => {
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+
+  if (!jiraEmail || !jiraToken) {
+    return res.status(503).json({ error: 'Jira credentials not configured. Set JIRA_EMAIL and JIRA_API_TOKEN env vars.' });
+  }
+
+  const jql = [
+    'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
+    'AND created >= -90d',
+    'AND "zendesk status[short text]" !~ "Solved"',
+    'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
+    'AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)',
+    'ORDER BY created DESC'
+  ].join(' ');
+
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,sprint';
+  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0 });
+  const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search?${params}`;
+
+  try {
+    const jiraRes = await fetch(url, {
+      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
+    });
+
+    if (!jiraRes.ok) {
+      const errText = await jiraRes.text().catch(() => '');
+      console.error(`Jira API error ${jiraRes.status}:`, errText.slice(0, 300));
+      return res.status(502).json({ error: `Jira returned ${jiraRes.status}`, details: errText.slice(0, 200) });
+    }
+
+    const data = await jiraRes.json();
+
+    const tickets = (data.issues || []).map(issue => {
+      const f = issue.fields;
+      // Sprint: Jira returns sprint as a custom field; name varies — try common paths
+      const sprintArr = f.sprint || f['customfield_10020'] || [];
+      const activeSprint = Array.isArray(sprintArr)
+        ? sprintArr.find(s => s.state === 'active') || sprintArr[sprintArr.length - 1]
+        : (sprintArr && typeof sprintArr === 'object' ? sprintArr : null);
+
+      return {
+        key:       issue.key,
+        id:        issue.id,          // numeric Jira ID — used for dev-status API
+        type:      f.issuetype?.name  || 'Story',
+        summary:   f.summary          || '',
+        status:    f.status?.name     || '',
+        priority:  f.priority?.name   || 'Medium',
+        assignee:  f.assignee?.displayName || null,
+        duedate:   f.duedate          || null,
+        eta:       (f.fixVersions || [])[0]?.releaseDate || null,
+        etaName:   (f.fixVersions || [])[0]?.name       || null,
+        created:   f.created          || null,
+        updated:   f.updated          || null,
+        labels:    f.labels           || [],
+        sprint:    activeSprint?.name || null,
+        sprintEnd: activeSprint?.endDate || null,
+      };
+    });
+
+    res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('Jira proxy error:', err);
+    res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
 app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
