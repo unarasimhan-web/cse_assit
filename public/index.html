@@ -164,6 +164,44 @@
     .exec-box ul { margin: 10px 0 0 18px; font-size: 14px; line-height: 2; }
     .exec-box li::marker { color: var(--pp-light); }
 
+    /* EXEC NARRATIVE */
+    .exec-narrative-block {
+      background: rgba(0, 156, 222, 0.05);
+      border: 1px solid rgba(0, 156, 222, 0.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      line-height: 1.75;
+      font-size: 13.5px;
+      color: var(--text);
+    }
+    .exec-narrative-block .narr-para {
+      margin-bottom: 10px;
+    }
+    .exec-narrative-block .narr-para:last-child { margin-bottom: 0; }
+    .narr-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--pp-light);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .narr-hi   { color: var(--red);    font-weight: 600; }
+    .narr-warn { color: var(--orange); font-weight: 600; }
+    .narr-ok   { color: var(--green);  font-weight: 600; }
+    .narr-key  {
+      background: rgba(108,99,255,0.15);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 0px 5px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
     /* KEY CHALLENGES */
     .challenges-block {
       background: rgba(255, 77, 109, 0.06);
@@ -197,6 +235,39 @@
       padding: 1px 5px;
       font-size: 11px;
       font-family: monospace;
+    }
+
+    /* TREE ROWS */
+    .tree-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 9px;
+      cursor: pointer;
+      margin-right: 6px;
+      transition: background 0.15s, transform 0.15s;
+      flex-shrink: 0;
+      vertical-align: middle;
+      user-select: none;
+    }
+    .tree-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tree-toggle.open  { background: var(--accent); color: #fff; border-color: var(--accent); transform: rotate(90deg); }
+    .tree-spacer { display: inline-block; width: 24px; }
+    .child-row td {
+      background: rgba(108, 99, 255, 0.035);
+      border-bottom: 1px solid var(--border);
+    }
+    .child-row .key-cell { padding-left: 28px !important; }
+    .child-row-loading td { color: var(--muted); font-size: 12px; font-style: italic; padding: 10px 28px !important; }
+    .child-link-badge {
+      font-size: 10px; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1px 5px; margin-right: 5px;
     }
 
     /* FILTERS */
@@ -550,6 +621,7 @@
     <div class="exec-box">
       <h2>Executive Summary — PayPal Account</h2>
       <p id="exec-headline" style="margin-bottom:14px"></p>
+      <div id="exec-narrative" class="exec-narrative-block"></div>
       <div id="key-challenges" class="challenges-block" style="display:none"></div>
       <table id="table-exec" style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
         <thead>
@@ -607,7 +679,7 @@
     <!-- TASKS SECTION -->
     <div class="section" id="section-tasks">
       <div class="section-header">
-        <span class="section-title">✅ Tasks / Documentation</span>
+        <span class="section-title">🔧 Tasks / Documentation</span>
         <span class="section-count" id="count-tasks">0</span>
       </div>
       <div class="table-wrap">
@@ -829,6 +901,121 @@ function renderDashboard(data) {
     ' &nbsp;·&nbsp; As of <span id="exec-date">' +
       M[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '</span>';
 
+  // ── Executive Narrative ───────────────────────────────────────────────────
+  (function buildExecNarrative() {
+    const today = new Date();
+
+    // ── Segment tickets by state ──────────────────────────────────────────
+    const inProgress   = tickets.filter(t => /in.?progress/i.test(t.status));
+    const pending      = tickets.filter(t => /pending|waiting|on.?hold|blocked/i.test(t.status));
+    const awaitingCust = tickets.filter(t =>
+      /waiting.*customer|customer.*response|awaiting.*clarif|clarif.*needed|pending.*customer/i.test(t.status + ' ' + t.summary)
+    );
+    const openBlocked  = tickets.filter(t => /block/i.test(t.status + ' ' + t.summary));
+    const urgentHigh   = tickets.filter(t => ['urgent','highest','high'].includes((t.priority||'').toLowerCase()));
+    const urgentBugs   = bugs.filter(t => ['urgent','highest'].includes((t.priority||'').toLowerCase()));
+    const noOwner      = tickets.filter(t => !t.assignee);
+    const today_ts     = today.getTime();
+    const overdueItems = tickets.filter(t => { const d = t.duedate||t.eta; return d && new Date(d) < today; });
+    const stale        = tickets.filter(t => {
+      if (!t.updated) return false;
+      return (today_ts - new Date(t.updated)) / 86400000 > 14 &&
+             /in.?progress|open|in.?review/i.test(t.status||'');
+    });
+
+    // ── Helper: list up to N ticket keys as inline links ──────────────────
+    function keyLinks(arr, max) {
+      return arr.slice(0, max).map(t =>
+        `<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" class="narr-key">${escHtml(t.key)}</a>`
+      ).join(' ');
+    }
+
+    // ── Build paragraphs ──────────────────────────────────────────────────
+    const paras = [];
+
+    // Para 1 — Overall posture
+    {
+      const totalOpen   = tickets.length;
+      const proj        = [...new Set(tickets.map(t => t.key.split('-')[0]))].join(', ');
+      let mood, moodClass;
+      if (urgentBugs.length >= 3 || overdueItems.length >= 5) {
+        mood = 'requires urgent attention'; moodClass = 'narr-hi';
+      } else if (urgentHigh.length >= 3 || overdueItems.length >= 2) {
+        mood = 'is at elevated risk'; moodClass = 'narr-warn';
+      } else {
+        mood = 'is progressing with manageable risk'; moodClass = 'narr-ok';
+      }
+      paras.push(
+        `The PayPal account currently has <strong>${totalOpen} open ticket${totalOpen!==1?'s':''}</strong> across ` +
+        `projects <strong>${escHtml(proj)}</strong>. Overall account health ` +
+        `<span class="${moodClass}">${mood}</span>. ` +
+        `${inProgress.length} ticket${inProgress.length!==1?'s are':' is'} actively in progress` +
+        (pending.length ? `, and ${pending.length} ${pending.length!==1?'are':'is'} pending or on hold` : '') + '.'
+      );
+    }
+
+    // Para 2 — Bugs & critical issues
+    if (bugs.length > 0) {
+      let s = `There ${bugs.length===1?'is':'are'} <span class="narr-hi"><strong>${bugs.length} active bug${bugs.length!==1?'s':''}</strong></span>`;
+      if (urgentBugs.length) {
+        s += `, of which <strong>${urgentBugs.length}</strong> ${urgentBugs.length===1?'is':'are'} at Urgent/Highest priority (${keyLinks(urgentBugs, 3)}) and represent the most critical engineering risk`;
+      }
+      const unassignedBugs = bugs.filter(t => !t.assignee);
+      if (unassignedBugs.length) {
+        s += `. <span class="narr-warn">${unassignedBugs.length} bug${unassignedBugs.length!==1?'s have':' has'} no assigned engineer</span> — ownership must be established immediately to avoid SLA breach`;
+      }
+      paras.push(s + '.');
+    }
+
+    // Para 3 — Awaiting customer / customer dependencies
+    if (awaitingCust.length || openBlocked.length) {
+      let s = '';
+      if (awaitingCust.length) {
+        s += `<span class="narr-warn"><strong>${awaitingCust.length} ticket${awaitingCust.length!==1?'s':''} ${awaitingCust.length===1?'is':'are'} awaiting customer input or clarification</strong></span> (${keyLinks(awaitingCust, 4)}). These items cannot progress without a response from PayPal and should be escalated if no reply is received within SLA`;
+      }
+      if (openBlocked.length) {
+        s += (s ? '. Additionally, ' : '') +
+          `<strong>${openBlocked.length} item${openBlocked.length!==1?'s are':' is'} blocked</strong> — these represent active dependencies that are halting engineering progress (${keyLinks(openBlocked, 3)})`;
+      }
+      paras.push(s + '.');
+    } else {
+      paras.push('No tickets are currently flagged as awaiting customer response or blocked by external dependencies.');
+    }
+
+    // Para 4 — Delivery risk (overdue + stale + no ETA)
+    {
+      const parts = [];
+      if (overdueItems.length)
+        parts.push(`<span class="narr-hi"><strong>${overdueItems.length} item${overdueItems.length!==1?'s have':' has'} passed their committed ETA</strong></span> (${keyLinks(overdueItems, 3)})`);
+      if (stale.length)
+        parts.push(`<strong>${stale.length} ticket${stale.length!==1?'s':''} stale for 14+ days</strong> with no engineering update`);
+      if (noOwner.length)
+        parts.push(`<span class="narr-warn"><strong>${noOwner.length} ticket${noOwner.length!==1?'s':''} unassigned</strong></span> with no clear owner`);
+      if (parts.length) {
+        paras.push('From a delivery risk perspective: ' + parts.join('; ') + '. Immediate re-triage and owner assignment is recommended.');
+      } else {
+        paras.push('Delivery risk is low — all active tickets have owners and are within their committed timelines.');
+      }
+    }
+
+    // Para 5 — Stories / Feature progress
+    if (stories.length > 0) {
+      const inProgStories = stories.filter(t => /in.?progress/i.test(t.status));
+      const withEtaSt     = stories.filter(t => t.eta || t.sprintEnd);
+      paras.push(
+        `On the feature and story side, <strong>${stories.length} story/FR item${stories.length!==1?'s are':' is'} open</strong>. ` +
+        (inProgStories.length ? `${inProgStories.length} ${inProgStories.length===1?'is':'are'} actively being built. ` : '') +
+        (withEtaSt.length ? `${withEtaSt.length} ${withEtaSt.length===1?'has':'have'} a committed delivery date. ` : 'None have a committed ETA yet — dates should be confirmed with engineering. ') +
+        `Close monitoring of sprint commitments is advised to ensure PayPal's expectations are met.`
+      );
+    }
+
+    const el = document.getElementById('exec-narrative');
+    el.innerHTML =
+      '<div class="narr-label">📝 Account Summary &amp; Analysis</div>' +
+      paras.map(p => `<div class="narr-para">${p}</div>`).join('');
+  })();
+
   // ── Key Challenges / Blockers ─────────────────────────────────────────────
   (function buildChallenges() {
     const today = new Date();
@@ -950,6 +1137,11 @@ function renderStatCards(cards) {
   }).join('');
 }
 
+// Global map: parentKey → array of child stubs (populated during renderSection)
+window._ticketChildren = {};
+// Cache: parentKey → fully-fetched child ticket array
+const _childRowCache = {};
+
 function renderSection(sec, tickets, isBug) {
   const tbody = document.getElementById('tbody-' + sec);
   if (!tickets.length) {
@@ -962,7 +1154,7 @@ function renderSection(sec, tickets, isBug) {
   document.getElementById('section-' + sec).style.display = '';
 
   tbody.innerHTML = tickets.map(t => {
-    const eta    = t.eta || t.sprintEnd || t.duedate;
+    const eta     = t.eta || t.sprintEnd || t.duedate;
     const etaDisp = eta ? fmtDate(eta) : '—';
     const etaAttr = eta ? ` data-sort="${eta}"` : '';
     const etaS    = etaColor(eta);
@@ -974,11 +1166,23 @@ function renderSection(sec, tickets, isBug) {
       ? `<span style="font-size:12px">${escHtml(t.assignee)}</span>`
       : `<span style="color:var(--orange);font-size:12px">⚠ Unassigned</span>`;
 
+    // Collect children (subtasks + linked issues)
+    const children = [
+      ...(t.subtasks     || []),
+      ...(t.linkedIssues || []),
+    ];
+    if (children.length) window._ticketChildren[t.key] = children;
+
+    const toggleHtml = children.length
+      ? `<span class="tree-toggle" title="${children.length} linked item${children.length>1?'s':''}"
+             onclick="toggleTreeRow(event,this,'${escHtml(t.key)}',${isBug})">▶</span>`
+      : `<span class="tree-spacer"></span>`;
+
     // data attrs for filter/sort
     const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}"`;
 
     let cells = `
-      <td class="key"><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
+      <td class="key">${toggleHtml}<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
       <td class="summary"><span title="${escHtml(t.summary)}">${escHtml(t.summary)}</span></td>
       <td><span class="${statClass}">${escHtml(t.status)}</span></td>
       <td><span class="${priClass}">${escHtml(t.priority||'—')}</span></td>
@@ -994,6 +1198,114 @@ function renderSection(sec, tickets, isBug) {
 
     return `<tr ${dataAttrs}>${cells}</tr>`;
   }).join('');
+}
+
+// ─── Tree expand / collapse ───────────────────────────────────────────────
+async function toggleTreeRow(event, toggleEl, parentKey, isBug) {
+  event.stopPropagation();
+  const parentRow = toggleEl.closest('tr');
+  const isOpen    = toggleEl.classList.contains('open');
+
+  if (isOpen) {
+    toggleEl.classList.remove('open');
+    let next = parentRow.nextElementSibling;
+    while (next && next.classList.contains('child-row')) {
+      const tmp = next.nextElementSibling;
+      next.remove();
+      next = tmp;
+    }
+    return;
+  }
+
+  toggleEl.classList.add('open');
+
+  // Count cols dynamically (header row of this table)
+  const tbl     = parentRow.closest('table');
+  const colspan = tbl ? tbl.querySelector('thead tr')?.children.length || 9 : 9;
+
+  // Loading placeholder
+  const loadingRow = document.createElement('tr');
+  loadingRow.className = 'child-row child-row-loading';
+  loadingRow.innerHTML = `<td colspan="${colspan}">Loading linked items…</td>`;
+  parentRow.insertAdjacentElement('afterend', loadingRow);
+
+  // Use cache if available
+  if (_childRowCache[parentKey]) {
+    loadingRow.remove();
+    insertChildRows(parentRow, _childRowCache[parentKey], isBug, colspan);
+    return;
+  }
+
+  const childStubs = window._ticketChildren[parentKey] || [];
+  const childKeys  = [...new Set(childStubs.map(c => c.key).filter(k => k))];
+  let fullChildren = [];
+
+  if (childKeys.length) {
+    try {
+      const res  = await fetch('/api/issues?keys=' + childKeys.join(','));
+      if (res.ok) {
+        const data   = await res.json();
+        const fullMap = {};
+        (data.tickets || []).forEach(t => { fullMap[t.key] = t; });
+        fullChildren = childStubs.map(stub => ({
+          ...(fullMap[stub.key] || stub),
+          linkType:  stub.linkType,
+          direction: stub.direction,
+        }));
+      }
+    } catch (e) { /* fall through to stubs */ }
+  }
+
+  if (!fullChildren.length) fullChildren = childStubs;
+  _childRowCache[parentKey] = fullChildren;
+  loadingRow.remove();
+  insertChildRows(parentRow, fullChildren, isBug, colspan);
+}
+
+function insertChildRows(parentRow, children, isBug, colspan) {
+  let insertAfter = parentRow;
+  children.forEach(c => {
+    const eta     = c.eta || c.sprintEnd || c.duedate;
+    const etaDisp = eta ? fmtDate(eta) : '—';
+    const etaS    = etaColor(eta);
+    const updDisp = c.updated ? fmtDate(c.updated) : '—';
+    const priClass  = priorityBadgeClass(c.priority);
+    const statClass = statusBadgeClass(c.status);
+    const assignHtml = c.assignee
+      ? `<span style="font-size:12px">${escHtml(c.assignee)}</span>`
+      : `<span style="font-size:12px;color:var(--muted)">—</span>`;
+
+    const badge = (c.linkType && c.linkType !== 'Sub-task')
+      ? `<span class="child-link-badge">${escHtml(c.linkType)}</span>` : '';
+
+    let cells = `
+      <td class="key key-cell">
+        <span style="color:var(--border);margin-right:4px">└</span>
+        ${badge}<a href="${JIRA_BASE}/browse/${escHtml(c.key)}" target="_blank"
+          style="font-size:12px;color:var(--muted)">${escHtml(c.key)}</a>
+      </td>
+      <td class="summary"><span style="font-size:12px;color:var(--muted)" title="${escHtml(c.summary)}">${escHtml(c.summary)}</span></td>
+      <td><span class="${statClass}" style="font-size:10px">${escHtml(c.status||'—')}</span></td>
+      <td><span class="${priClass}" style="font-size:10px">${escHtml(c.priority||'—')}</span></td>
+      <td>${assignHtml}</td>
+      <td ${etaS} style="font-size:12px">${etaDisp}</td>`;
+
+    if (isBug) {
+      cells += `<td style="font-size:11px;color:var(--muted)">${c.created ? c.created.substring(0,10) : '—'}</td>
+                <td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
+    } else {
+      cells += `<td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
+    }
+    // Pad remaining columns (Dev + Actions added dynamically)
+    const extraCols = Math.max(0, colspan - (isBug ? 8 : 7));
+    for (let i = 0; i < extraCols; i++) cells += '<td></td>';
+
+    const row = document.createElement('tr');
+    row.className = 'child-row';
+    row.innerHTML = cells;
+    insertAfter.insertAdjacentElement('afterend', row);
+    insertAfter = row;
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
