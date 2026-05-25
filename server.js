@@ -261,6 +261,55 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   }
 });
 
+// ── Single issue fetch (for tree child rows — always returns links) ─────────
+app.get('/api/issue/:key', requireAuth, async (req, res) => {
+  const key = req.params.key;
+  if (!/^[A-Z]+-\d+$/.test(key)) return res.status(400).json({ error: 'Invalid key' });
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured' });
+
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,subtasks,issuelinks,customfield_10020';
+  const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=${fields}`;
+
+  try {
+    const r    = await fetch(url, { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } });
+    if (!r.ok) return res.status(r.status).json({ error: `Jira returned ${r.status}` });
+    const issue = await r.json();
+    const f     = issue.fields || {};
+
+    const subtasks = (f.subtasks || []).map(s => ({
+      key: s.key, id: s.id,
+      type: s.fields?.issuetype?.name || 'Sub-task',
+      summary: s.fields?.summary || '',
+      status:  s.fields?.status?.name || '',
+      priority: s.fields?.priority?.name || '',
+      linkType: 'Sub-task',
+    }));
+
+    const linkedIssues = (f.issuelinks || []).map(l => {
+      const linked = l.inwardIssue || l.outwardIssue;
+      if (!linked) return null;
+      const dir = l.inwardIssue ? l.type?.inward : l.type?.outward;
+      return {
+        key:       linked.key, id: linked.id,
+        type:      linked.fields?.issuetype?.name || '',
+        summary:   linked.fields?.summary || '',
+        status:    linked.fields?.status?.name || '',
+        priority:  linked.fields?.priority?.name || '',
+        linkType:  dir || l.type?.name || 'Link',
+        direction: l.inwardIssue ? 'inward' : 'outward',
+      };
+    }).filter(Boolean);
+
+    res.json({ key, subtasks, linkedIssues });
+  } catch (err) {
+    res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
 // ── Batch issue fetch (for tree child rows) ────────────────────────────────
 app.get('/api/issues', requireAuth, async (req, res) => {
   const rawKeys = (req.query.keys || '').split(',').map(k => k.trim()).filter(k => /^[A-Z]+-\d+$/.test(k)).slice(0, 50);

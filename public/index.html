@@ -238,6 +238,7 @@
     }
 
     /* TREE ROWS */
+    /* TREE TOGGLE */
     .tree-toggle {
       display: inline-flex;
       align-items: center;
@@ -255,19 +256,16 @@
       vertical-align: middle;
       user-select: none;
     }
-    .tree-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .tree-toggle.open  { background: var(--accent); color: #fff; border-color: var(--accent); transform: rotate(90deg); }
-    .tree-spacer { display: inline-block; width: 24px; }
-    .child-row td {
-      background: rgba(108, 99, 255, 0.035);
-      border-bottom: 1px solid var(--border);
-    }
-    .child-row .key-cell { padding-left: 28px !important; }
+    .tree-toggle:hover  { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tree-toggle.open   { background: var(--accent); color: #fff; border-color: var(--accent); transform: rotate(90deg); }
+    .tree-toggle.loaded { border-color: var(--accent); color: var(--accent); }
+    .tree-toggle.empty  { opacity: 0.25; cursor: default; pointer-events: none; }
+    .child-row td       { background: rgba(108,99,255,0.04); border-bottom: 1px solid var(--border); }
     .child-row-loading td { color: var(--muted); font-size: 12px; font-style: italic; padding: 10px 28px !important; }
-    .child-link-badge {
+    .child-link-badge   {
       font-size: 10px; color: var(--muted);
       background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 3px; padding: 1px 5px; margin-right: 5px;
+      border-radius: 3px; padding: 1px 5px; margin-right: 5px; white-space: nowrap;
     }
 
     /* FILTERS */
@@ -1166,17 +1164,16 @@ function renderSection(sec, tickets, isBug) {
       ? `<span style="font-size:12px">${escHtml(t.assignee)}</span>`
       : `<span style="color:var(--orange);font-size:12px">⚠ Unassigned</span>`;
 
-    // Collect children (subtasks + linked issues)
-    const children = [
+    // Pre-seed children from search result data (may be partial)
+    const searchChildren = [
       ...(t.subtasks     || []),
       ...(t.linkedIssues || []),
     ];
-    if (children.length) window._ticketChildren[t.key] = children;
+    if (searchChildren.length) window._ticketChildren[t.key] = searchChildren;
 
-    const toggleHtml = children.length
-      ? `<span class="tree-toggle" title="${children.length} linked item${children.length>1?'s':''}"
-             onclick="toggleTreeRow(event,this,'${escHtml(t.key)}',${isBug})">▶</span>`
-      : `<span class="tree-spacer"></span>`;
+    // Every row gets a toggle — we lazy-fetch links on first click
+    const toggleHtml = `<span class="tree-toggle${searchChildren.length ? ' loaded' : ''}"
+      title="Show linked items" onclick="toggleTreeRow(event,this,'${escHtml(t.key)}',${isBug})">▶</span>`;
 
     // data attrs for filter/sort
     const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}"`;
@@ -1206,6 +1203,7 @@ async function toggleTreeRow(event, toggleEl, parentKey, isBug) {
   const parentRow = toggleEl.closest('tr');
   const isOpen    = toggleEl.classList.contains('open');
 
+  // COLLAPSE
   if (isOpen) {
     toggleEl.classList.remove('open');
     let next = parentRow.nextElementSibling;
@@ -1217,49 +1215,57 @@ async function toggleTreeRow(event, toggleEl, parentKey, isBug) {
     return;
   }
 
+  // EXPAND
   toggleEl.classList.add('open');
-
-  // Count cols dynamically (header row of this table)
   const tbl     = parentRow.closest('table');
   const colspan = tbl ? tbl.querySelector('thead tr')?.children.length || 9 : 9;
 
-  // Loading placeholder
+  // Loading row
   const loadingRow = document.createElement('tr');
   loadingRow.className = 'child-row child-row-loading';
-  loadingRow.innerHTML = `<td colspan="${colspan}">Loading linked items…</td>`;
+  loadingRow.innerHTML = `<td colspan="${colspan}" style="padding:10px 32px">⏳ Loading linked items…</td>`;
   parentRow.insertAdjacentElement('afterend', loadingRow);
 
-  // Use cache if available
+  // Use cached result if available
   if (_childRowCache[parentKey]) {
     loadingRow.remove();
-    insertChildRows(parentRow, _childRowCache[parentKey], isBug, colspan);
+    const cached = _childRowCache[parentKey];
+    if (!cached.length) {
+      toggleEl.classList.remove('open');
+      toggleEl.classList.add('empty');
+      toggleEl.title = 'No linked items';
+    } else {
+      insertChildRows(parentRow, cached, isBug, colspan);
+    }
     return;
   }
 
-  const childStubs = window._ticketChildren[parentKey] || [];
-  const childKeys  = [...new Set(childStubs.map(c => c.key).filter(k => k))];
-  let fullChildren = [];
+  // Always fetch directly from /api/issue/:key — guarantees full issuelinks data
+  let children = [];
+  try {
+    const res = await fetch('/api/issue/' + encodeURIComponent(parentKey));
+    if (res.ok) {
+      const data = await res.json();
+      children = [
+        ...(data.subtasks     || []),
+        ...(data.linkedIssues || []),
+      ];
+    }
+  } catch (e) { /* network error — show empty */ }
 
-  if (childKeys.length) {
-    try {
-      const res  = await fetch('/api/issues?keys=' + childKeys.join(','));
-      if (res.ok) {
-        const data   = await res.json();
-        const fullMap = {};
-        (data.tickets || []).forEach(t => { fullMap[t.key] = t; });
-        fullChildren = childStubs.map(stub => ({
-          ...(fullMap[stub.key] || stub),
-          linkType:  stub.linkType,
-          direction: stub.direction,
-        }));
-      }
-    } catch (e) { /* fall through to stubs */ }
+  _childRowCache[parentKey] = children;
+  loadingRow.remove();
+
+  if (!children.length) {
+    toggleEl.classList.remove('open');
+    toggleEl.classList.add('empty');
+    toggleEl.title = 'No linked items';
+    return;
   }
 
-  if (!fullChildren.length) fullChildren = childStubs;
-  _childRowCache[parentKey] = fullChildren;
-  loadingRow.remove();
-  insertChildRows(parentRow, fullChildren, isBug, colspan);
+  toggleEl.classList.add('loaded');
+  toggleEl.title = children.length + ' linked item' + (children.length > 1 ? 's' : '');
+  insertChildRows(parentRow, children, isBug, colspan);
 }
 
 function insertChildRows(parentRow, children, isBug, colspan) {
