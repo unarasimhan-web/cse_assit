@@ -1,5 +1,5 @@
 const express = require('express');
-const cookieSession = require('cookie-session');
+const session = require('express-session');
 const passport = require('passport');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const path = require('path');
@@ -7,43 +7,36 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const ALLOWED_DOMAIN = 'armorcode.io';
 
-// ── Session (cookie-based — works stateless on Cloud Run) ──────────────────
-app.use(cookieSession({
-  name: 'ac_session',
-  keys: [process.env.SESSION_SECRET || 'change-me-in-production'],
-  maxAge: 8 * 60 * 60 * 1000, // 8 hours
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+// Trust Cloud Run's proxy so secure cookies work over HTTPS
+app.set('trust proxy', 1);
+const ALLOWED_DOMAIN = 'armorcode.io';
+const BASE_URL = 'https://cse-assit-983405469928.europe-west1.run.app';
+
+// Guard: crash early with a clear message if OAuth credentials are missing
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error('❌ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as environment variables.');
+  process.exit(1);
+}
+
+// ── Session ────────────────────────────────────────────────────────────────
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change-me-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 8 * 60 * 60 * 1000, // 8 hours
+  },
 }));
 
 // ── Passport ───────────────────────────────────────────────────────────────
-// Shim: passport >= 0.6 requires session.regenerate/save which cookie-session lacks
-app.use((req, res, next) => {
-  if (req.session && !req.session.regenerate) {
-    req.session.regenerate = (cb) => cb();
-  }
-  if (req.session && !req.session.save) {
-    req.session.save = (cb) => cb();
-  }
-  next();
-});
-
 app.use(passport.initialize());
 app.use(passport.session());
 
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
-
-// Guard: crash early with a clear message if OAuth credentials are missing
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.error('❌ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as environment variables.');
-  console.error('   Set them in Cloud Run → Edit & Deploy New Revision → Variables & Secrets.');
-  process.exit(1);
-}
-
-const BASE_URL = 'https://cse-assit-983405469928.europe-west1.run.app';
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -75,15 +68,10 @@ function requireAuth(req, res, next) {
 
 // ── Routes ─────────────────────────────────────────────────────────────────
 
-// Google OAuth start
 app.get('/auth/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    hd: ALLOWED_DOMAIN,
-  })
+  passport.authenticate('google', { scope: ['profile', 'email'], hd: ALLOWED_DOMAIN })
 );
 
-// Google OAuth callback
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/unauthorized' }),
   (req, res) => {
@@ -93,7 +81,6 @@ app.get('/auth/google/callback',
   }
 );
 
-// Unauthorised page
 app.get('/unauthorized', (req, res) => {
   res.status(403).send(`
     <!DOCTYPE html>
@@ -129,25 +116,21 @@ app.get('/unauthorized', (req, res) => {
   `);
 });
 
-// Logout
 app.get('/logout', (req, res) => {
   req.logout(() => {
-    req.session = null;
+    req.session.destroy();
     res.redirect('/');
   });
 });
 
-// API: current user info (for the dashboard header)
 app.get('/api/me', requireAuth, (req, res) => {
   res.json({ name: req.user.name, email: req.user.email, photo: req.user.photo });
 });
 
-// Dashboard — protected
 app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Static assets
 app.use(requireAuth, express.static(path.join(__dirname, 'public')));
 
 // ── Start ──────────────────────────────────────────────────────────────────
