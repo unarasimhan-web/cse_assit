@@ -164,6 +164,65 @@
     .exec-box ul { margin: 10px 0 0 18px; font-size: 14px; line-height: 2; }
     .exec-box li::marker { color: var(--pp-light); }
 
+    /* EXEC TWO-COLUMN INSIGHT ROW */
+    .exec-insight-row {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 18px;
+      align-items: flex-start;
+    }
+    .exec-charts-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 200px;
+      flex-shrink: 0;
+    }
+    .exec-narrative-col { flex: 1; min-width: 0; }
+    .mini-chart-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+    }
+    .mini-chart-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .donut-wrap { display:flex; align-items:center; gap:10px; }
+    .donut-legend { flex:1; }
+    .donut-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text);
+    }
+    .donut-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .donut-legend-row span { color:var(--muted); margin-left:auto; font-weight:600; }
+    .mini-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 6px;
+      font-size: 11px;
+    }
+    .mini-bar-label { width:52px; color:var(--muted); flex-shrink:0; }
+    .mini-bar-track {
+      flex:1;
+      background: rgba(255,255,255,0.07);
+      border-radius:3px;
+      height:6px;
+      overflow:hidden;
+    }
+    .mini-bar-fill { height:100%; border-radius:3px; transition: width .5s ease; }
+    .mini-bar-num { width:18px; text-align:right; color:var(--text); font-weight:600; font-size:11px; }
+
     /* EXEC NARRATIVE */
     .exec-narrative-block {
       background: rgba(0, 156, 222, 0.05);
@@ -619,8 +678,34 @@
     <div class="exec-box">
       <h2>Executive Summary — PayPal Account</h2>
       <p id="exec-headline" style="margin-bottom:14px"></p>
-      <div id="exec-narrative" class="exec-narrative-block"></div>
-      <div id="key-challenges" class="challenges-block" style="display:none"></div>
+      <div class="exec-insight-row">
+        <!-- LEFT: Mini charts -->
+        <div class="exec-charts-col">
+          <div class="mini-chart-card">
+            <div class="mini-chart-title">Ticket Types</div>
+            <div class="donut-wrap">
+              <canvas id="chart-types" width="70" height="70"></canvas>
+              <div class="donut-legend" id="legend-types"></div>
+            </div>
+          </div>
+          <div class="mini-chart-card">
+            <div class="mini-chart-title">Priority Split</div>
+            <div id="chart-priority"></div>
+          </div>
+          <div class="mini-chart-card">
+            <div class="mini-chart-title">Assignment</div>
+            <div class="donut-wrap">
+              <canvas id="chart-assign" width="70" height="70"></canvas>
+              <div class="donut-legend" id="legend-assign"></div>
+            </div>
+          </div>
+        </div>
+        <!-- RIGHT: Narrative + challenges -->
+        <div class="exec-narrative-col">
+          <div id="exec-narrative" class="exec-narrative-block"></div>
+          <div id="key-challenges" class="challenges-block" style="display:none"></div>
+        </div>
+      </div>
       <table id="table-exec" style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
         <thead>
           <tr style="border-bottom:1px solid var(--border);color:var(--muted);text-align:left">
@@ -1080,6 +1165,108 @@ function renderDashboard(data) {
     el.innerHTML =
       '<div class="ch-title">⚠ Key Challenges &amp; Blockers</div>' +
       '<ul>' + challenges.map(c => `<li>${c}</li>`).join('') + '</ul>';
+  })();
+
+  // ── Exec mini charts ─────────────────────────────────────────────────────
+  (function renderExecCharts() {
+    const assigned = tickets.filter(t => !!t.assignee).length;
+    const unassignedC = tickets.length - assigned;
+
+    // Priority buckets
+    const priMap = { urgent:0, highest:0, high:0, medium:0, low:0, other:0 };
+    tickets.forEach(t => {
+      const p = (t.priority||'').toLowerCase();
+      if (p === 'urgent' || p === 'highest') priMap.urgent++;
+      else if (p === 'high') priMap.high++;
+      else if (p === 'medium') priMap.medium++;
+      else if (p === 'low') priMap.low++;
+      else priMap.other++;
+    });
+
+    // ── Draw donut helper ────────────────────────────────────────────────
+    function drawDonut(id, segments, colors, bg) {
+      const canvas = document.getElementById(id);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 3, inner = r * 0.56;
+      const total = segments.reduce((a,b) => a+b, 0);
+      ctx.clearRect(0, 0, W, H);
+      if (!total) return;
+      let angle = -Math.PI/2;
+      segments.forEach((val, i) => {
+        const sweep = (val/total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, angle, angle + sweep);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        angle += sweep;
+      });
+      ctx.beginPath();
+      ctx.arc(cx, cy, inner, 0, Math.PI*2);
+      ctx.fillStyle = bg || getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#1a1d27';
+      ctx.fill();
+      ctx.fillStyle = '#e8eaf6';
+      ctx.font = `bold ${Math.floor(r*0.38)}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(total, cx, cy);
+    }
+
+    // ── Legend helper ─────────────────────────────────────────────────────
+    function legend(id, items) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = items.map(([color, label, val]) =>
+        `<div class="donut-legend-row">
+          <div class="donut-dot" style="background:${color}"></div>
+          ${label}<span>${val}</span>
+        </div>`
+      ).join('');
+    }
+
+    // ── Bar chart helper ──────────────────────────────────────────────────
+    function barChart(id, rows, maxVal) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = rows.map(([label, val, color]) => `
+        <div class="mini-bar-row">
+          <div class="mini-bar-label">${label}</div>
+          <div class="mini-bar-track">
+            <div class="mini-bar-fill" style="width:${maxVal?Math.round(val/maxVal*100):0}%;background:${color}"></div>
+          </div>
+          <div class="mini-bar-num">${val}</div>
+        </div>`).join('');
+    }
+
+    // ── Ticket Types donut ────────────────────────────────────────────────
+    const typeColors = ['#009cde','#ff4d6d','#7c6af7'];
+    drawDonut('chart-types', [stories.length, bugs.length, tasks.length], typeColors);
+    legend('legend-types', [
+      [typeColors[0], 'Stories', stories.length],
+      [typeColors[1], 'Bugs',    bugs.length],
+      [typeColors[2], 'Tasks',   tasks.length],
+    ]);
+
+    // ── Priority bar chart ────────────────────────────────────────────────
+    const maxPri = Math.max(priMap.urgent, priMap.high, priMap.medium, priMap.low, 1);
+    barChart('chart-priority', [
+      ['Urgent',  priMap.urgent, '#ff4d6d'],
+      ['High',    priMap.high,   '#ff8c42'],
+      ['Medium',  priMap.medium, '#ffd166'],
+      ['Low',     priMap.low,    '#6bcb77'],
+      priMap.other ? ['Other', priMap.other, '#8b91b5'] : null,
+    ].filter(Boolean), maxPri);
+
+    // ── Assignment donut ──────────────────────────────────────────────────
+    const assignColors = ['#6bcb77','#ff8c42'];
+    drawDonut('chart-assign', [assigned, unassignedC], assignColors);
+    legend('legend-assign', [
+      [assignColors[0], 'Assigned',   assigned],
+      [assignColors[1], 'Unassigned', unassignedC],
+    ]);
   })();
 
   const execTbody = document.getElementById('exec-tbody');
