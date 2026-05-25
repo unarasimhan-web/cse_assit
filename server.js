@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const passport = require('passport');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const path = require('path');
@@ -7,29 +7,39 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-
-// Trust Cloud Run's proxy so secure cookies work over HTTPS
-app.set('trust proxy', 1);
 const ALLOWED_DOMAIN = 'armorcode.io';
 const BASE_URL = 'https://cse-assit-983405469928.europe-west1.run.app';
 
-// Guard: crash early with a clear message if OAuth credentials are missing
+// Trust Cloud Run's proxy so secure cookies work over HTTPS
+app.set('trust proxy', 1);
+
+// Guard: crash early if OAuth credentials are missing
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.error('❌ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as environment variables.');
+  console.error('❌ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set.');
   process.exit(1);
 }
 
-// ── Session ────────────────────────────────────────────────────────────────
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'change-me-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 8 * 60 * 60 * 1000, // 8 hours
-  },
+// ── Session (cookie-based — stateless, works across all Cloud Run instances) ──
+app.use(cookieSession({
+  name: 'ac_session',
+  keys: [process.env.SESSION_SECRET || 'change-me-in-production'],
+  maxAge: 8 * 60 * 60 * 1000,
+  secure: true,
+  sameSite: 'lax',
+  httpOnly: true,
 }));
+
+// ── Passport compatibility shim for cookie-session ─────────────────────────
+// passport >= 0.6 calls req.session.regenerate/save which cookie-session lacks
+app.use((req, res, next) => {
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (cb) => cb();
+  }
+  if (req.session && !req.session.save) {
+    req.session.save = (cb) => cb();
+  }
+  next();
+});
 
 // ── Passport ───────────────────────────────────────────────────────────────
 app.use(passport.initialize());
@@ -67,7 +77,6 @@ function requireAuth(req, res, next) {
 }
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'], hd: ALLOWED_DOMAIN })
 );
@@ -83,42 +92,33 @@ app.get('/auth/google/callback',
 
 app.get('/unauthorized', (req, res) => {
   res.status(403).send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8"/>
-      <title>Access Denied — ArmorCode</title>
-      <style>
-        body { background: #0f1117; color: #e8eaf6; font-family: system-ui, sans-serif;
-               display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { text-align: center; padding: 40px; background: #1a1d27;
-               border: 1px solid #2e3150; border-radius: 16px; max-width: 400px; }
-        .badge { background: #ff4d6d22; border: 1px solid #ff4d6d; color: #ff4d6d;
-                 display: inline-block; padding: 4px 14px; border-radius: 20px;
-                 font-size: 12px; font-weight: 700; margin-bottom: 20px; }
-        h1 { font-size: 22px; margin-bottom: 10px; }
-        p  { color: #8b91b5; font-size: 14px; line-height: 1.6; }
-        a  { display: inline-block; margin-top: 24px; padding: 10px 24px;
-             background: #6c63ff; color: #fff; border-radius: 8px;
-             text-decoration: none; font-size: 14px; font-weight: 600; }
-      </style>
-    </head>
-    <body>
-      <div class="box">
-        <div class="badge">ACCESS DENIED</div>
-        <h1>ArmorCode Employees Only</h1>
-        <p>This dashboard is restricted to <strong>@armorcode.io</strong> Google accounts.<br/>
-           Please sign in with your ArmorCode work email.</p>
-        <a href="/auth/google">Try a different account</a>
-      </div>
-    </body>
-    </html>
+    <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+    <title>Access Denied — ArmorCode</title>
+    <style>
+      body { background:#0f1117;color:#e8eaf6;font-family:system-ui,sans-serif;
+             display:flex;align-items:center;justify-content:center;height:100vh;margin:0; }
+      .box { text-align:center;padding:40px;background:#1a1d27;border:1px solid #2e3150;
+             border-radius:16px;max-width:400px; }
+      .badge { background:#ff4d6d22;border:1px solid #ff4d6d;color:#ff4d6d;
+               display:inline-block;padding:4px 14px;border-radius:20px;
+               font-size:12px;font-weight:700;margin-bottom:20px; }
+      h1 { font-size:22px;margin-bottom:10px; }
+      p  { color:#8b91b5;font-size:14px;line-height:1.6; }
+      a  { display:inline-block;margin-top:24px;padding:10px 24px;background:#6c63ff;
+           color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600; }
+    </style></head>
+    <body><div class="box">
+      <div class="badge">ACCESS DENIED</div>
+      <h1>ArmorCode Employees Only</h1>
+      <p>This dashboard is restricted to <strong>@armorcode.io</strong> Google accounts.</p>
+      <a href="/auth/google">Try a different account</a>
+    </div></body></html>
   `);
 });
 
 app.get('/logout', (req, res) => {
   req.logout(() => {
-    req.session.destroy();
+    req.session = null;
     res.redirect('/');
   });
 });
