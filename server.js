@@ -175,14 +175,19 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     'ORDER BY created DESC'
   ].join(' ');
 
-  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,sprint';
-  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0 });
+  const fields = ['key','id','issuetype','summary','status','priority','assignee','duedate','fixVersions','created','updated','labels','customfield_10020'];
   const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search?${params}`;
+  const url    = 'https://armorcodeinc.atlassian.net/rest/api/3/search/jql';
 
   try {
     const jiraRes = await fetch(url, {
-      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ jql, fields, maxResults: 100, startAt: 0 })
     });
 
     if (!jiraRes.ok) {
@@ -195,8 +200,8 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
 
     const tickets = (data.issues || []).map(issue => {
       const f = issue.fields;
-      // Sprint: Jira returns sprint as a custom field; name varies — try common paths
-      const sprintArr = f.sprint || f['customfield_10020'] || [];
+      // Sprint: returned as customfield_10020 in Jira REST API v3
+      const sprintArr = f['customfield_10020'] || [];
       const activeSprint = Array.isArray(sprintArr)
         ? sprintArr.find(s => s.state === 'active') || sprintArr[sprintArr.length - 1]
         : (sprintArr && typeof sprintArr === 'object' ? sprintArr : null);
