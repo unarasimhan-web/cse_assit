@@ -1985,5 +1985,87 @@ function sortSection(th) {
 })();
 </script>
 
+
+<script>
+// ── Key link hover → ticket gist tooltip ──────────────────────
+(function() {
+  var tt = document.createElement('div');
+  tt.style.cssText = [
+    'display:none',
+    'position:fixed',
+    'z-index:10001',
+    'background:#1e2235',
+    'border:1px solid #4a4f82',
+    'border-radius:10px',
+    'padding:11px 15px',
+    'max-width:340px',
+    'min-width:200px',
+    'font-family:Segoe UI,system-ui,sans-serif',
+    'pointer-events:none',
+    'box-shadow:0 8px 28px rgba(0,0,0,0.7)'
+  ].join(';');
+  document.body.appendChild(tt);
+
+  var PRIORITY_COLOR = {
+    'Urgent':'#ff4d6d','Highest':'#ff4d6d',
+    'High':'#ff9f43','Medium':'#ffd60a',
+    'Low':'#2ed573','Lowest':'#8b91b5'
+  };
+  var TYPE_ICON = { 'Bug':'🐛','Story':'📘','Task':'📋','Sub-task':'🔹' };
+
+  function show(a, e) {
+    var row = a.closest('tr[data-key]');
+    if (!row) return;
+    var summary  = row.dataset.summary  || '';
+    var type     = row.dataset.type     || '';
+    var priority = row.dataset.priority || '';
+    var assignee = row.dataset.assignee || '';
+    if (!summary) return;
+
+    // Line 1: type icon + priority badge + assignee
+    var icon = TYPE_ICON[type] || '🎫';
+    var pColor = PRIORITY_COLOR[priority] || '#8b91b5';
+    var line1 = '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap">'
+      + '<span style="font-size:12px">' + icon + ' ' + escStr(type) + '</span>'
+      + (priority ? '<span style="font-size:10px;font-weight:700;color:' + pColor + ';background:' + pColor + '22;border:1px solid ' + pColor + '55;padding:1px 8px;border-radius:10px">' + escStr(priority) + '</span>' : '')
+      + (assignee && assignee !== 'unassigned' ? '<span style="font-size:10px;color:#8b91b5">👤 ' + escStr(assignee) + '</span>' : '<span style="font-size:10px;color:#ff9f43">⚠️ Unassigned</span>')
+      + '</div>';
+
+    // Line 2: summary — wrap at ~60 chars
+    var line2 = '<div style="font-size:12.5px;color:#e8eaf6;line-height:1.6;word-break:break-word">' + escStr(summary) + '</div>';
+
+    tt.innerHTML = line1 + line2;
+    tt.style.display = 'block';
+    move(e);
+  }
+  function move(e) {
+    var x = e.clientX + 18, y = e.clientY + 20;
+    var ttW = 340, ttH = tt.offsetHeight || 90;
+    if (x + ttW > window.innerWidth - 10)  x = e.clientX - ttW - 10;
+    if (y + ttH > window.innerHeight - 10) y = e.clientY - ttH - 10;
+    tt.style.left = x + 'px';
+    tt.style.top  = y + 'px';
+  }
+  function escStr(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    var a = e.target.closest('a[href*="/browse/"]');
+    if (!a) return;
+    show(a, e);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (tt.style.display === 'block') {
+      var a = e.target.closest('a[href*="/browse/"]');
+      if (a) { move(e); } else { tt.style.display = 'none'; }
+    }
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (!e.target.closest('a[href*="/browse/"]')) tt.style.display = 'none';
+  });
+})();
+</script>
+
 </body>
 </html>
