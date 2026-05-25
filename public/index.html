@@ -809,6 +809,14 @@ function sectionKey(type) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CURRENT USER (for comment sign-off)
+// ═══════════════════════════════════════════════════════════════
+let _userName = '';
+fetch('/api/me').then(r => r.ok ? r.json() : null).then(u => {
+  if (u && u.name) _userName = u.name.split(' ')[0]; // first name only
+}).catch(() => {});
+
+// ═══════════════════════════════════════════════════════════════
 // DATA LOADING
 // ═══════════════════════════════════════════════════════════════
 async function loadTickets() {
@@ -1542,12 +1550,13 @@ function openTrackModal(issueKey, summary, eta) {
   document.getElementById('modal-subtitle').textContent = summary;
   document.getElementById('modal-token-section').style.display = getToken() ? 'none' : 'block';
   const etaLine = (eta && eta !== '—') ? 'Planned ETA: ' + eta : 'No ETA currently set in Jira';
+  const signOff = _userName ? 'Thanks,\n' + _userName : 'Thanks';
   document.getElementById('modal-comment').value =
-    'Hi team — checking in on ' + issueKey + '.\n\n' + etaLine + '\n\n' +
+    'Hi team, just checking on this. I see ' + etaLine + '\n\n' +
     'Is this on track for the planned release / sprint end date? Please share:\n' +
     '  • Current target date / sprint ETA\n' +
-    '  • Any blockers or risks\n' +
-    '  • Confidence level (High / Medium / Low)';
+    '  • Any blockers or risks\n\n' +
+    signOff;
   document.getElementById('jira-modal').classList.add('open');
 }
 
