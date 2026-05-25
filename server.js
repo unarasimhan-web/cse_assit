@@ -25,11 +25,20 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
+// Guard: crash early with a clear message if OAuth credentials are missing
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error('❌ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set as environment variables.');
+  console.error('   Set them in Cloud Run → Edit & Deploy New Revision → Variables & Secrets.');
+  process.exit(1);
+}
+
+const BASE_URL = process.env.BASE_URL || `https://cse-assit-983405469928.europe-west1.run.app`;
+
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BASE_URL}/auth/google/callback`,
-  hd: ALLOWED_DOMAIN, // hint Google to show only armorcode.io accounts
+  callbackURL: `${BASE_URL}/auth/google/callback`,
+  hd: ALLOWED_DOMAIN,
 }, (accessToken, refreshToken, profile, done) => {
   const email = profile.emails?.[0]?.value || '';
   const domain = email.split('@')[1];
