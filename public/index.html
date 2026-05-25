@@ -164,6 +164,41 @@
     .exec-box ul { margin: 10px 0 0 18px; font-size: 14px; line-height: 2; }
     .exec-box li::marker { color: var(--pp-light); }
 
+    /* KEY CHALLENGES */
+    .challenges-block {
+      background: rgba(255, 77, 109, 0.06);
+      border: 1px solid rgba(255, 77, 109, 0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+    }
+    .challenges-block .ch-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--red);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .challenges-block ul { margin: 0; padding-left: 18px; }
+    .challenges-block li {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.8;
+    }
+    .challenges-block li::marker { color: var(--red); }
+    .ch-key {
+      background: rgba(108, 99, 255, 0.15);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
     /* FILTERS */
     .filters {
       display: flex;
@@ -514,7 +549,8 @@
     <!-- EXEC SUMMARY -->
     <div class="exec-box">
       <h2>Executive Summary — PayPal Account</h2>
-      <p id="exec-headline" style="margin-bottom:10px"></p>
+      <p id="exec-headline" style="margin-bottom:14px"></p>
+      <div id="key-challenges" class="challenges-block" style="display:none"></div>
       <table id="table-exec" style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
         <thead>
           <tr style="border-bottom:1px solid var(--border);color:var(--muted);text-align:left">
@@ -792,6 +828,75 @@ function renderDashboard(data) {
     ' &nbsp;·&nbsp; ' + withETA + ' items with ETAs' +
     ' &nbsp;·&nbsp; As of <span id="exec-date">' +
       M[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '</span>';
+
+  // ── Key Challenges / Blockers ─────────────────────────────────────────────
+  (function buildChallenges() {
+    const today = new Date();
+    const challenges = [];
+
+    // 1. Urgent/Highest priority bugs unresolved
+    const urgentBugs = bugs.filter(t =>
+      ['urgent','highest'].includes((t.priority||'').toLowerCase())
+    );
+    if (urgentBugs.length) {
+      const keys = urgentBugs.slice(0,3).map(t =>
+        `<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" class="ch-key">${escHtml(t.key)}</a>`
+      ).join(' ');
+      challenges.push(`<strong>${urgentBugs.length} critical bug${urgentBugs.length>1?'s':''}</strong> at Urgent/Highest priority require immediate engineering attention — ${keys}`);
+    }
+
+    // 2. High-priority tickets with no assignee
+    const unassignedHigh = tickets.filter(t =>
+      !t.assignee && ['urgent','highest','high'].includes((t.priority||'').toLowerCase())
+    );
+    if (unassignedHigh.length) {
+      const keys = unassignedHigh.slice(0,3).map(t =>
+        `<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" class="ch-key">${escHtml(t.key)}</a>`
+      ).join(' ');
+      challenges.push(`<strong>${unassignedHigh.length} high-priority ticket${unassignedHigh.length>1?'s are':' is'} unassigned</strong> — no owner to drive resolution ${keys}`);
+    }
+
+    // 3. Overdue items (duedate or eta in the past, not done)
+    const overdue = tickets.filter(t => {
+      const dt = t.duedate || t.eta;
+      return dt && new Date(dt) < today;
+    });
+    if (overdue.length) {
+      const keys = overdue.slice(0,3).map(t =>
+        `<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" class="ch-key">${escHtml(t.key)}</a>`
+      ).join(' ');
+      challenges.push(`<strong>${overdue.length} ticket${overdue.length>1?'s have':' has'} passed their ETA</strong> without resolution — at risk of missing SLA commitments ${keys}`);
+    }
+
+    // 4. Stale tickets — no update in > 14 days and still open
+    const stale = tickets.filter(t => {
+      if (!t.updated) return false;
+      const daysSince = (today - new Date(t.updated)) / (1000*60*60*24);
+      return daysSince > 14 && ['in progress','open','in review'].includes((t.status||'').toLowerCase());
+    });
+    if (stale.length) {
+      challenges.push(`<strong>${stale.length} ticket${stale.length>1?'s':''} stale for 14+ days</strong> with no engineering update — may need re-triage or customer follow-up`);
+    }
+
+    // 5. High-priority items with no ETA
+    const noEtaHigh = tickets.filter(t =>
+      !t.eta && !t.sprintEnd && !t.duedate &&
+      ['urgent','highest','high'].includes((t.priority||'').toLowerCase())
+    );
+    if (noEtaHigh.length) {
+      challenges.push(`<strong>${noEtaHigh.length} high-priority ticket${noEtaHigh.length>1?'s have':' has'} no ETA set</strong> — customer cannot be given a delivery timeline`);
+    }
+
+    const el = document.getElementById('key-challenges');
+    if (challenges.length === 0) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = '';
+    el.innerHTML =
+      '<div class="ch-title">⚠ Key Challenges &amp; Blockers</div>' +
+      '<ul>' + challenges.map(c => `<li>${c}</li>`).join('') + '</ul>';
+  })();
 
   const execTbody = document.getElementById('exec-tbody');
   execTbody.innerHTML = execTickets.map(t => {
