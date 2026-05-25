@@ -1260,9 +1260,8 @@ async function toggleTreeRow(event, toggleEl, parentKey, isBug) {
   loadingRow.remove();
 
   if (!children.length) {
-    toggleEl.classList.remove('open');
-    toggleEl.classList.add('empty');
-    toggleEl.title = 'No linked items';
+    // Remove the toggle entirely — confirmed no linked items
+    toggleEl.replaceWith(document.createElement('span'));
     return;
   }
 

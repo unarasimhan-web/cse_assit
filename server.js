@@ -227,18 +227,22 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
         labels:    f.labels                || [],
         sprint:    activeSprint?.name      || null,
         sprintEnd: activeSprint?.endDate   || null,
-        subtasks: (f.subtasks || []).map(s => ({
-          key:      s.key,
-          id:       s.id,
-          type:     s.fields?.issuetype?.name || 'Sub-task',
-          summary:  s.fields?.summary         || '',
-          status:   s.fields?.status?.name    || '',
-          priority: s.fields?.priority?.name  || '',
-          linkType: 'Sub-task',
-        })),
+        subtasks: (f.subtasks || [])
+          .filter(s => s && s.key && s.fields?.summary)   // must have key + summary
+          .map(s => ({
+            key:      s.key,
+            id:       s.id,
+            type:     s.fields?.issuetype?.name || 'Sub-task',
+            summary:  s.fields?.summary         || '',
+            status:   s.fields?.status?.name    || '',
+            priority: s.fields?.priority?.name  || '',
+            linkType: 'Sub-task',
+          })),
         linkedIssues: (f.issuelinks || []).map(l => {
           const linked = l.inwardIssue || l.outwardIssue;
-          if (!linked) return null;
+          // Require a valid key AND a non-empty summary to count as a real link
+          if (!linked || !linked.key || !linked.fields?.summary) return null;
+          const dir = l.inwardIssue ? l.type?.inward : l.type?.outward;
           return {
             key:       linked.key,
             id:        linked.id,
@@ -246,7 +250,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
             summary:   linked.fields?.summary         || '',
             status:    linked.fields?.status?.name    || '',
             priority:  linked.fields?.priority?.name  || '',
-            linkType:  l.type?.name                   || 'Link',
+            linkType:  dir || l.type?.name            || 'Link',
             direction: l.inwardIssue ? 'inward' : 'outward',
           };
         }).filter(Boolean),
@@ -280,18 +284,20 @@ app.get('/api/issue/:key', requireAuth, async (req, res) => {
     const issue = await r.json();
     const f     = issue.fields || {};
 
-    const subtasks = (f.subtasks || []).map(s => ({
-      key: s.key, id: s.id,
-      type: s.fields?.issuetype?.name || 'Sub-task',
-      summary: s.fields?.summary || '',
-      status:  s.fields?.status?.name || '',
-      priority: s.fields?.priority?.name || '',
-      linkType: 'Sub-task',
-    }));
+    const subtasks = (f.subtasks || [])
+      .filter(s => s && s.key && s.fields?.summary)
+      .map(s => ({
+        key: s.key, id: s.id,
+        type: s.fields?.issuetype?.name || 'Sub-task',
+        summary: s.fields?.summary || '',
+        status:  s.fields?.status?.name || '',
+        priority: s.fields?.priority?.name || '',
+        linkType: 'Sub-task',
+      }));
 
     const linkedIssues = (f.issuelinks || []).map(l => {
       const linked = l.inwardIssue || l.outwardIssue;
-      if (!linked) return null;
+      if (!linked || !linked.key || !linked.fields?.summary) return null;
       const dir = l.inwardIssue ? l.type?.inward : l.type?.outward;
       return {
         key:       linked.key, id: linked.id,
