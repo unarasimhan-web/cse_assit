@@ -198,8 +198,15 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
 
     const data = await jiraRes.json();
 
-    const tickets = (data.issues || []).map(issue => {
-      const f = issue.fields;
+    // Log top-level keys so we can see the actual response shape in Cloud Run logs
+    console.log('[Jira] response keys:', Object.keys(data));
+    console.log('[Jira] total:', data.total, '| issues count:', (data.issues || data.values || []).length);
+
+    // New /search/jql endpoint returns 'issues'; fallback to 'values' just in case
+    const rawIssues = data.issues || data.values || [];
+
+    const tickets = rawIssues.map(issue => {
+      const f = issue.fields || {};
       // Sprint: returned as customfield_10020 in Jira REST API v3
       const sprintArr = f['customfield_10020'] || [];
       const activeSprint = Array.isArray(sprintArr)
@@ -208,27 +215,50 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
 
       return {
         key:       issue.key,
-        id:        issue.id,          // numeric Jira ID — used for dev-status API
-        type:      f.issuetype?.name  || 'Story',
-        summary:   f.summary          || '',
-        status:    f.status?.name     || '',
-        priority:  f.priority?.name   || 'Medium',
+        id:        issue.id,
+        type:      f.issuetype?.name       || 'Story',
+        summary:   f.summary               || '',
+        status:    f.status?.name          || '',
+        priority:  f.priority?.name        || 'Medium',
         assignee:  f.assignee?.displayName || null,
-        duedate:   f.duedate          || null,
+        duedate:   f.duedate               || null,
         eta:       (f.fixVersions || [])[0]?.releaseDate || null,
         etaName:   (f.fixVersions || [])[0]?.name       || null,
-        created:   f.created          || null,
-        updated:   f.updated          || null,
-        labels:    f.labels           || [],
-        sprint:    activeSprint?.name || null,
-        sprintEnd: activeSprint?.endDate || null,
+        created:   f.created               || null,
+        updated:   f.updated               || null,
+        labels:    f.labels                || [],
+        sprint:    activeSprint?.name      || null,
+        sprintEnd: activeSprint?.endDate   || null,
       };
     });
 
+    console.log('[Jira] mapped tickets:', tickets.length, '| first key:', tickets[0]?.key || 'none');
     res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Jira proxy error:', err);
     res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
+// ── Debug: raw Jira response (first 3 issues only) ─────────────────────────
+app.get('/api/debug', requireAuth, async (req, res) => {
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.json({ error: 'env vars missing' });
+
+  const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const jql  = 'labels IN (paypal, PayPal) AND created >= -90d AND status NOT IN (Done) AND project IN (ENG, PROD) ORDER BY created DESC';
+
+  try {
+    const r = await fetch('https://armorcodeinc.atlassian.net/rest/api/3/search/jql', {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jql, fields: ['summary','status','priority'], maxResults: 3 })
+    });
+    const raw = await r.json();
+    res.json({ status: r.status, topLevelKeys: Object.keys(raw), total: raw.total, sampleCount: (raw.issues||raw.values||[]).length, sample: (raw.issues||raw.values||[]).slice(0,3) });
+  } catch (e) {
+    res.json({ error: e.message });
   }
 });
 
