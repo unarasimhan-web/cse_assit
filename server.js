@@ -187,7 +187,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ jql, fields, maxResults: 100, startAt: 0 })
+      body: JSON.stringify({ jql, fields, maxResults: 100 })
     });
 
     if (!jiraRes.ok) {
