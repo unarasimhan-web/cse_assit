@@ -619,12 +619,33 @@
 
 <header>
   <div class="logo">
-    <!-- ArmorCode venn diagram logo — multiply on white background matches brand -->
-    <svg width="40" height="44" viewBox="0 0 40 44" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:7px;" aria-label="ArmorCode">
-      <rect width="40" height="44" rx="7" fill="#ffffff"/>
-      <circle cx="15" cy="17" r="12" fill="#FFB3C1" style="mix-blend-mode:multiply"/>
-      <circle cx="25" cy="17" r="12" fill="#B3D9FF" style="mix-blend-mode:multiply"/>
-      <circle cx="20" cy="28" r="12" fill="#FFFFB3" style="mix-blend-mode:multiply"/>
+    <!-- ArmorCode venn diagram logo — explicit overlap regions, works on any bg -->
+    <svg width="42" height="46" viewBox="0 0 84 92" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;" aria-label="ArmorCode">
+      <defs>
+        <clipPath id="cp_ac_p"><circle cx="30" cy="34" r="27"/></clipPath>
+        <clipPath id="cp_ac_b"><circle cx="54" cy="34" r="27"/></clipPath>
+        <clipPath id="cp_ac_y"><circle cx="42" cy="56" r="27"/></clipPath>
+        <!-- mask = pink ∩ blue region, used for triple intersection -->
+        <mask id="m_ac_pb">
+          <circle cx="54" cy="34" r="27" clip-path="url(#cp_ac_p)" fill="white"/>
+        </mask>
+      </defs>
+
+      <!-- Base circles -->
+      <circle cx="30" cy="34" r="27" fill="#F9A8C0"/>
+      <circle cx="54" cy="34" r="27" fill="#A8C4F8"/>
+      <circle cx="42" cy="56" r="27" fill="#F8F8A0"/>
+
+      <!-- Two-way overlaps (drawn on top of base) -->
+      <!-- Pink ∩ Blue → violet -->
+      <circle cx="54" cy="34" r="27" clip-path="url(#cp_ac_p)" fill="#C89AD8"/>
+      <!-- Pink ∩ Yellow → hot pink -->
+      <circle cx="42" cy="56" r="27" clip-path="url(#cp_ac_p)" fill="#F08098"/>
+      <!-- Blue ∩ Yellow → mint green -->
+      <circle cx="42" cy="56" r="27" clip-path="url(#cp_ac_b)" fill="#88CCA8"/>
+
+      <!-- Triple intersection → deep indigo -->
+      <circle cx="42" cy="56" r="27" clip-path="url(#cp_ac_y)" mask="url(#m_ac_pb)" fill="#5C4A8A"/>
     </svg>
     <div class="logo-divider"></div>
     <div class="paypal-logo">
