@@ -169,7 +169,6 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   const jql = [
     'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
     'AND created >= -90d',
-    'AND "zendesk status[short text]" !~ "Solved"',
     'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
     'AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)',
     'ORDER BY created DESC'
@@ -239,23 +238,59 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   }
 });
 
-// ── Debug: raw Jira response (first 3 issues only) ─────────────────────────
+// ── Debug: diagnose auth + search in one shot ───────────────────────────────
 app.get('/api/debug', requireAuth, async (req, res) => {
   const jiraEmail = process.env.JIRA_EMAIL;
   const jiraToken = process.env.JIRA_API_TOKEN;
-  if (!jiraEmail || !jiraToken) return res.json({ error: 'env vars missing' });
+  if (!jiraEmail || !jiraToken) {
+    return res.json({ error: 'env vars missing', emailSet: !!jiraEmail, tokenSet: !!jiraToken });
+  }
 
   const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-  const jql  = 'labels IN (paypal, PayPal) AND created >= -90d AND status NOT IN (Done) AND project IN (ENG, PROD) ORDER BY created DESC';
+  const headers = { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' };
 
   try {
-    const dp = new URLSearchParams({ jql, fields: 'summary,status,priority', maxResults: 3 });
-    const r = await fetch(`https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${dp}`, {
-      method: 'GET',
-      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
+    // 1. Verify auth identity
+    const meRes  = await fetch('https://armorcodeinc.atlassian.net/rest/api/3/myself', { headers });
+    const meData = await meRes.json().catch(() => ({}));
+
+    // 2. Minimal search — just project = ENG, no labels filter
+    const p1 = new URLSearchParams({ jql: 'project = ENG ORDER BY created DESC', maxResults: 3 });
+    const s1  = await fetch(`https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${p1}`, { headers });
+    const d1  = await s1.json().catch(() => ({}));
+
+    // 3. Label search — PayPal labels only
+    const p2 = new URLSearchParams({ jql: 'labels = PayPal ORDER BY created DESC', maxResults: 3 });
+    const s2  = await fetch(`https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${p2}`, { headers });
+    const d2  = await s2.json().catch(() => ({}));
+
+    res.json({
+      credentials: {
+        emailUsed:  jiraEmail,
+        tokenFirst8: jiraToken.substring(0, 8) + '…',
+      },
+      identity: {
+        status:     meRes.status,
+        accountId:  meData.accountId,
+        email:      meData.emailAddress,
+        displayName: meData.displayName,
+      },
+      engSearch: {
+        status: s1.status,
+        total:  d1.total,
+        count:  (d1.issues || []).length,
+        keys:   Object.keys(d1),
+        error:  d1.errorMessages,
+      },
+      labelSearch: {
+        status: s2.status,
+        total:  d2.total,
+        count:  (d2.issues || []).length,
+        keys:   Object.keys(d2),
+        error:  d2.errorMessages,
+        sample: (d2.issues || []).slice(0, 2).map(i => i.key),
+      }
     });
-    const raw = await r.json();
-    res.json({ status: r.status, topLevelKeys: Object.keys(raw), total: raw.total, sampleCount: (raw.issues||raw.values||[]).length, sample: (raw.issues||raw.values||[]).slice(0,3) });
   } catch (e) {
     res.json({ error: e.message });
   }
