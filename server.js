@@ -119,6 +119,8 @@ app.get('/unauthorized', (req, res) => {
 app.get('/logout', (req, res) => {
   req.logout(() => {
     req.session = null;
+    res.clearCookie('ac_session');
+    res.clearCookie('ac_session.sig');
     res.redirect('/');
   });
 });
