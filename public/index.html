@@ -1561,20 +1561,10 @@ function applyPagination() {
 // ═══════════════════════════════════════════════════════════════
 let _activeIssueKey = '';
 
-function getToken()  { return localStorage.getItem('jira_api_token') || ''; }
-function saveToken() {
-  const t = (document.getElementById('modal-token').value || '').trim();
-  if (!t) return;
-  localStorage.setItem('jira_api_token', t);
-  document.getElementById('modal-token-section').style.display = 'none';
-  showToast('✅ API token saved — ready to post comments', 'success');
-}
-
 function openTrackModal(issueKey, summary, eta) {
   _activeIssueKey = issueKey;
   document.getElementById('modal-title').textContent = '📊 On-Track Check · ' + issueKey;
   document.getElementById('modal-subtitle').textContent = summary;
-  document.getElementById('modal-token-section').style.display = getToken() ? 'none' : 'block';
   const etaLine = (eta && eta !== '—') ? 'Planned ETA: ' + eta : 'No ETA currently set in Jira';
   const signOff = _userName ? 'Thanks,\n' + _userName : 'Thanks';
   document.getElementById('modal-comment').value =
@@ -1591,46 +1581,26 @@ function closeModal() {
 }
 
 async function sendJiraComment() {
-  const token = getToken();
-  if (!token) {
-    document.getElementById('modal-token-section').style.display = 'block';
-    showToast('⚠️ Please save your Jira API token first', 'info');
-    return;
-  }
   const text = document.getElementById('modal-comment').value.trim();
   if (!text) return;
   const btn = document.getElementById('modal-post-btn');
   btn.disabled = true; btn.textContent = 'Posting…';
-  const paragraphs = text.split('\n\n').map(p => ({ type:'paragraph', content:[{ type:'text', text:p }] }));
-  const body = { body:{ type:'doc', version:1, content:paragraphs } };
-  const url  = JIRA_BASE + '/rest/api/3/issue/' + _activeIssueKey + '/comment';
-  const auth = btoa(JIRA_USER + ':' + token);
   try {
-    const resp = await fetch(url, {
-      method:'POST',
-      headers:{ 'Authorization':'Basic '+auth, 'Content-Type':'application/json', 'Accept':'application/json' },
-      body: JSON.stringify(body)
+    const resp = await fetch('/api/comment/' + encodeURIComponent(_activeIssueKey), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
     });
+    const result = await resp.json().catch(() => ({}));
     if (resp.ok) {
       closeModal();
       showToast('✅ Comment posted to ' + _activeIssueKey, 'success');
-    } else if (resp.status === 401) {
-      localStorage.removeItem('jira_api_token');
-      document.getElementById('modal-token-section').style.display = 'block';
-      showToast('❌ Token invalid or expired — please re-enter', 'error');
     } else {
-      const b = await resp.text().catch(() => '');
-      throw new Error('HTTP ' + resp.status + (b ? ': ' + b.slice(0,120) : ''));
+      throw new Error(result.error || 'HTTP ' + resp.status);
     }
   } catch (err) {
-    try {
-      await navigator.clipboard.writeText(text);
-      closeModal();
-      showToast('📋 Copied to clipboard — open ' + _activeIssueKey + ' in Jira and paste', 'info');
-    } catch {
-      showToast('❌ Could not post. Check console.', 'error');
-      console.error('[Jira action]', err);
-    }
+    showToast('❌ ' + (err.message || 'Could not post comment'), 'error');
+    console.error('[Jira comment]', err);
   } finally {
     btn.disabled = false; btn.textContent = '📤 Post to Jira';
   }

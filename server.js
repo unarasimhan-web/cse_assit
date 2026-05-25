@@ -265,6 +265,45 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   }
 });
 
+// ── Post Jira comment (uses server-side credentials) ───────────────────────
+app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
+  const key = req.params.key;
+  if (!/^[A-Z]+-\d+$/.test(key)) return res.status(400).json({ error: 'Invalid key' });
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured on server' });
+
+  const text = (req.body?.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Comment text is required' });
+
+  // Convert plain text (newlines) → Jira ADF document
+  const content = text.split('\n').map(line => ({
+    type: 'paragraph',
+    content: line.trim() ? [{ type: 'text', text: line }] : [{ type: 'text', text: ' ' }]
+  }));
+  const adfBody = { body: { type: 'doc', version: 1, content } };
+
+  const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const url  = `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}/comment`;
+
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(adfBody)
+    });
+    if (r.ok) {
+      const data = await r.json();
+      return res.json({ ok: true, commentId: data.id });
+    }
+    const errText = await r.text().catch(() => '');
+    return res.status(r.status).json({ error: `Jira returned ${r.status}`, details: errText.slice(0, 200) });
+  } catch (err) {
+    res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
 // ── Single issue fetch (for tree child rows — always returns links) ─────────
 app.get('/api/issue/:key', requireAuth, async (req, res) => {
   const key = req.params.key;
