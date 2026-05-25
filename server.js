@@ -304,6 +304,69 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
   }
 });
 
+// ── Ticket gist: summary + first paragraph of description ────────────────────
+const _gistCache = {};
+
+function adfToPlainText(node) {
+  if (!node) return '';
+  if (node.type === 'text') return node.text || '';
+  if (node.type === 'hardBreak') return ' ';
+  if (Array.isArray(node.content)) {
+    const parts = node.content.map(adfToPlainText);
+    if (node.type === 'paragraph') return parts.join('').trim();
+    return parts.join('');
+  }
+  return '';
+}
+
+// Extract paragraphs as an array of plain-text strings, skipping empty ones
+function adfParagraphs(node) {
+  if (!node || !Array.isArray(node.content)) return [];
+  return node.content
+    .filter(n => n.type === 'paragraph')
+    .map(n => adfToPlainText(n).replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+app.get('/api/gist/:key', requireAuth, async (req, res) => {
+  const key = req.params.key;
+  if (!/^[A-Z]+-\d+$/.test(key)) return res.status(400).json({ error: 'Invalid key' });
+  if (_gistCache[key]) return res.json(_gistCache[key]);
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured' });
+
+  try {
+    const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+    const r = await fetch(
+      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=summary,description`,
+      { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } }
+    );
+    if (!r.ok) return res.status(r.status).json({ error: `Jira ${r.status}` });
+
+    const issue     = await r.json();
+    const summary   = (issue.fields?.summary || '').trim();
+    const paras     = adfParagraphs(issue.fields?.description);
+
+    // Pick the first paragraph that adds context beyond just repeating the summary
+    const firstPara = paras.find(p => p.length > 20 && p.toLowerCase() !== summary.toLowerCase()) || '';
+
+    // Truncate to ~160 chars so it fits cleanly in 2 lines
+    const truncate = (s, n) => s.length > n ? s.slice(0, s.lastIndexOf(' ', n) || n) + '…' : s;
+
+    const result = {
+      line1: truncate(summary, 120),
+      line2: truncate(firstPara, 160)
+    };
+
+    _gistCache[key] = result;
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Single issue fetch (for tree child rows — always returns links) ─────────
 app.get('/api/issue/:key', requireAuth, async (req, res) => {
   const key = req.params.key;
