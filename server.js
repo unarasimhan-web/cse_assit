@@ -175,19 +175,18 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     'ORDER BY created DESC'
   ].join(' ');
 
-  const fields = ['key','id','issuetype','summary','status','priority','assignee','duedate','fixVersions','created','updated','labels','customfield_10020'];
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020';
   const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-  const url    = 'https://armorcodeinc.atlassian.net/rest/api/3/search/jql';
+  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0 });
+  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
 
   try {
     const jiraRes = await fetch(url, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Authorization': `Basic ${auth}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query: jql, fields, maxResults: 100 })
+        'Accept': 'application/json'
+      }
     });
 
     if (!jiraRes.ok) {
@@ -250,10 +249,10 @@ app.get('/api/debug', requireAuth, async (req, res) => {
   const jql  = 'labels IN (paypal, PayPal) AND created >= -90d AND status NOT IN (Done) AND project IN (ENG, PROD) ORDER BY created DESC';
 
   try {
-    const r = await fetch('https://armorcodeinc.atlassian.net/rest/api/3/search/jql', {
-      method: 'POST',
-      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: jql, fields: ['summary','status','priority'], maxResults: 3 })
+    const dp = new URLSearchParams({ jql, fields: 'summary,status,priority', maxResults: 3 });
+    const r = await fetch(`https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${dp}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' }
     });
     const raw = await r.json();
     res.json({ status: r.status, topLevelKeys: Object.keys(raw), total: raw.total, sampleCount: (raw.issues||raw.values||[]).length, sample: (raw.issues||raw.values||[]).slice(0,3) });
