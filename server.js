@@ -32,7 +32,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   process.exit(1);
 }
 
-const BASE_URL = process.env.BASE_URL || `https://cse-assit-983405469928.europe-west1.run.app`;
+const BASE_URL = 'https://cse-assit-983405469928.europe-west1.run.app';
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
