@@ -174,7 +174,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     'ORDER BY created DESC'
   ].join(' ');
 
-  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020';
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks';
   const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
   const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0 });
   const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
@@ -227,6 +227,29 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
         labels:    f.labels                || [],
         sprint:    activeSprint?.name      || null,
         sprintEnd: activeSprint?.endDate   || null,
+        subtasks: (f.subtasks || []).map(s => ({
+          key:      s.key,
+          id:       s.id,
+          type:     s.fields?.issuetype?.name || 'Sub-task',
+          summary:  s.fields?.summary         || '',
+          status:   s.fields?.status?.name    || '',
+          priority: s.fields?.priority?.name  || '',
+          linkType: 'Sub-task',
+        })),
+        linkedIssues: (f.issuelinks || []).map(l => {
+          const linked = l.inwardIssue || l.outwardIssue;
+          if (!linked) return null;
+          return {
+            key:       linked.key,
+            id:        linked.id,
+            type:      linked.fields?.issuetype?.name || '',
+            summary:   linked.fields?.summary         || '',
+            status:    linked.fields?.status?.name    || '',
+            priority:  linked.fields?.priority?.name  || '',
+            linkType:  l.type?.name                   || 'Link',
+            direction: l.inwardIssue ? 'inward' : 'outward',
+          };
+        }).filter(Boolean),
       };
     });
 
@@ -234,6 +257,52 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Jira proxy error:', err);
+    res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
+// ── Batch issue fetch (for tree child rows) ────────────────────────────────
+app.get('/api/issues', requireAuth, async (req, res) => {
+  const rawKeys = (req.query.keys || '').split(',').map(k => k.trim()).filter(k => /^[A-Z]+-\d+$/.test(k)).slice(0, 50);
+  if (!rawKeys.length) return res.json({ tickets: [] });
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured' });
+
+  const jql    = `key IN (${rawKeys.join(',')}) ORDER BY created DESC`;
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,customfield_10020';
+  const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const params = new URLSearchParams({ jql, fields, maxResults: 50 });
+  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
+
+  try {
+    const jiraRes = await fetch(url, { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } });
+    if (!jiraRes.ok) return res.status(502).json({ error: `Jira returned ${jiraRes.status}` });
+    const data = await jiraRes.json();
+    const tickets = (data.issues || []).map(issue => {
+      const f = issue.fields || {};
+      const sprintArr   = f['customfield_10020'] || [];
+      const activeSprint = Array.isArray(sprintArr)
+        ? sprintArr.find(s => s.state === 'active') || sprintArr[sprintArr.length - 1] : null;
+      return {
+        key:       issue.key,
+        id:        issue.id,
+        type:      f.issuetype?.name            || 'Story',
+        summary:   f.summary                    || '',
+        status:    f.status?.name               || '',
+        priority:  f.priority?.name             || 'Medium',
+        assignee:  f.assignee?.displayName      || null,
+        duedate:   f.duedate                    || null,
+        eta:       (f.fixVersions || [])[0]?.releaseDate || null,
+        created:   f.created                    || null,
+        updated:   f.updated                    || null,
+        sprint:    activeSprint?.name           || null,
+        sprintEnd: activeSprint?.endDate        || null,
+      };
+    });
+    res.json({ tickets });
+  } catch (err) {
     res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
   }
 });
