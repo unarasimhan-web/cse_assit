@@ -69,6 +69,31 @@ passport.use(new GoogleStrategy({
   });
 }));
 
+// ── Inactivity timeout (45 minutes) ────────────────────────────────────────
+const INACTIVITY_MS = 45 * 60 * 1000;
+
+app.use((req, res, next) => {
+  // Skip auth routes themselves
+  if (req.path.startsWith('/auth') || req.path === '/unauthorized') return next();
+
+  if (req.isAuthenticated()) {
+    const now = Date.now();
+    const last = req.session.lastActivity || now;
+    if (now - last > INACTIVITY_MS) {
+      // Session expired due to inactivity — force re-login
+      req.logout(() => {
+        req.session = null;
+        res.clearCookie('ac_session');
+        res.clearCookie('ac_session.sig');
+        res.redirect('/auth/google?prompt=select_account');
+      });
+      return;
+    }
+    req.session.lastActivity = now;
+  }
+  next();
+});
+
 // ── Auth middleware ─────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
   if (req.isAuthenticated()) return next();
@@ -77,9 +102,11 @@ function requireAuth(req, res, next) {
 }
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'], hd: ALLOWED_DOMAIN })
-);
+app.get('/auth/google', (req, res, next) => {
+  const opts = { scope: ['profile', 'email'], hd: ALLOWED_DOMAIN };
+  if (req.query.prompt) opts.prompt = req.query.prompt;
+  passport.authenticate('google', opts)(req, res, next);
+});
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/unauthorized' }),
@@ -121,7 +148,8 @@ app.get('/logout', (req, res) => {
     req.session = null;
     res.clearCookie('ac_session');
     res.clearCookie('ac_session.sig');
-    res.redirect('/');
+    // Add prompt=select_account so Google doesn't silently re-authenticate
+    res.redirect('/auth/google?prompt=select_account');
   });
 });
 
