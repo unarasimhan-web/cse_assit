@@ -168,10 +168,20 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
 
   const jql = [
     'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
-    'AND created >= -90d',
-    'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
     'AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)',
-    'ORDER BY created DESC'
+    'AND issuetype != Bug',
+    'AND (',
+      '(',
+        'created >= -90d',
+        'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
+      ')',
+      'OR',
+      '(',
+        'status IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
+        'AND updated >= -7d',
+      ')',
+    ')',
+    'ORDER BY priority ASC'
   ].join(' ');
 
   const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks';
@@ -203,6 +213,9 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     // New /search/jql endpoint returns 'issues'; fallback to 'values' just in case
     const rawIssues = data.issues || data.values || [];
 
+    const CLOSED_STATUSES = ['done','invalid',"won't fix",'wont fix','wont do','duplicate','deferred'];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
     const tickets = rawIssues.map(issue => {
       const f = issue.fields || {};
       // Sprint: returned as customfield_10020 in Jira REST API v3
@@ -224,9 +237,11 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
         etaName:   (f.fixVersions || [])[0]?.name       || null,
         created:   f.created               || null,
         updated:   f.updated               || null,
-        labels:    f.labels                || [],
-        sprint:    activeSprint?.name      || null,
-        sprintEnd: activeSprint?.endDate   || null,
+        labels:         f.labels                || [],
+        sprint:         activeSprint?.name      || null,
+        sprintEnd:      activeSprint?.endDate   || null,
+        closedRecently: CLOSED_STATUSES.includes((f.status?.name || '').toLowerCase()) &&
+                        f.updated && new Date(f.updated).getTime() >= sevenDaysAgo,
         subtasks: (f.subtasks || [])
           .filter(s => s && s.key && s.fields?.summary)   // must have key + summary
           .map(s => ({

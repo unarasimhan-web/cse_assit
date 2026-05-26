@@ -752,6 +752,7 @@
       <button class="filter-btn" onclick="filterType('unassigned',this)">⚠ Unassigned</button>
       <button class="filter-btn" onclick="filterType('duesoon',this)">⏰ Due Soon</button>
       <button class="filter-btn" onclick="filterType('inprogress',this)">▶ In Progress</button>
+      <button class="filter-btn" onclick="filterType('closed',this)">✅ Recently Closed</button>
       <input type="search" placeholder="Search tickets…" oninput="searchTickets(this.value)" />
     </div>
 
@@ -799,6 +800,28 @@
         </table>
       </div>
       <div class="pager" id="pager-tasks" style="display:none"></div>
+    </div>
+
+    <!-- RECENTLY CLOSED SECTION -->
+    <div class="section" id="section-closed">
+      <div class="section-header">
+        <span class="section-title">✅ Recently Closed <span style="font-size:12px;color:var(--muted);font-weight:400">(last 7 days)</span></span>
+        <span class="section-count" id="count-closed">0</span>
+      </div>
+      <div class="table-wrap">
+        <table id="table-closed">
+          <thead><tr>
+            <th data-col="0" data-sorttype="key"      onclick="sortSection(this)" style="width:120px">Key</th>
+            <th>Summary</th>
+            <th data-col="2" data-sorttype="text"     onclick="sortSection(this)" style="width:120px">Status</th>
+            <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
+            <th style="width:140px">Assignee</th>
+            <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Closed</th>
+          </tr></thead>
+          <tbody id="tbody-closed"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pager-closed" style="display:none"></div>
     </div>
 
     <!-- BUGS SECTION -->
@@ -949,10 +972,11 @@ function renderDashboard(data) {
     ', ' + (h%12||12) + ':' + (mn < 10 ? '0'+mn : mn) + ampm;
 
   // Categorize
-  const stories = [], tasks = [], bugs = [];
+  const stories = [], tasks = [], bugs = [], closed = [];
   const today = new Date(); today.setHours(0,0,0,0);
 
   tickets.forEach(t => {
+    if (t.closedRecently) { closed.push(t); return; }
     const sec = sectionKey(t.type);
     if (sec === 'bugs') bugs.push(t);
     else if (sec === 'tasks') tasks.push(t);
@@ -1309,6 +1333,7 @@ function renderDashboard(data) {
   renderSection('stories', stories, false);
   renderSection('tasks',   tasks,   false);
   renderSection('bugs',    bugs,    true);
+  renderClosedSection(closed);
 
   // Show dashboard, hide loading
   document.getElementById('loading-state').style.display = 'none';
@@ -1400,6 +1425,36 @@ function renderSection(sec, tickets, isBug) {
     }
 
     return `<tr ${dataAttrs}>${cells}</tr>`;
+  }).join('');
+}
+
+function renderClosedSection(tickets) {
+  const tbody = document.getElementById('tbody-closed');
+  if (!tickets.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">No recently closed tickets</td></tr>`;
+    document.getElementById('section-closed').style.display = 'none';
+    document.getElementById('count-closed').textContent = '0';
+    return;
+  }
+  document.getElementById('count-closed').textContent = tickets.length;
+  document.getElementById('section-closed').style.display = '';
+
+  tbody.innerHTML = tickets.map(t => {
+    const closedDate = t.updated ? fmtDate(t.updated) : '—';
+    const priClass  = priorityBadgeClass(t.priority);
+    const statClass = statusBadgeClass(t.status);
+    const assigneeHtml = t.assignee
+      ? `<span style="font-size:12px">${escHtml(t.assignee)}</span>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    const dataAttrs = `data-type="${sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="" data-closed="true"`;
+    return `<tr ${dataAttrs}>
+      <td class="key"><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
+      <td class="summary"><span title="${escHtml(t.summary)}">${escHtml(t.summary)}</span></td>
+      <td><span class="${statClass}">${escHtml(t.status)}</span></td>
+      <td><span class="${priClass}">${escHtml(t.priority||'—')}</span></td>
+      <td>${assigneeHtml}</td>
+      <td style="font-size:11px;color:var(--muted)">${closedDate}</td>
+    </tr>`;
   }).join('');
 }
 
@@ -1566,7 +1621,7 @@ function injectActionButtons() {
 // FILTERS & PAGINATION
 // ═══════════════════════════════════════════════════════════════
 const PAGE_SIZE = 5;
-const sectionPages = { exec: 1, stories: 1, tasks: 1, bugs: 1 };
+const sectionPages = { exec: 1, stories: 1, tasks: 1, bugs: 1, closed: 1 };
 let currentType = 'all';
 let currentSearch = '';
 
@@ -1612,6 +1667,7 @@ function applyFilters() {
     if (currentType === 'unassigned' && !assignee.includes('unassigned')) show = false;
     if (currentType === 'duesoon'    && !row.querySelector('.due-soon')) show = false;
     if (currentType === 'inprogress' && !row.querySelector('.badge-status-inprogress')) show = false;
+    if (currentType === 'closed'     && row.dataset.closed !== 'true') show = false;
     if (currentSearch && !text.includes(currentSearch)) show = false;
     row.dataset.filtered = show ? 'true' : 'false';
   });
@@ -1620,7 +1676,7 @@ function applyFilters() {
 }
 
 function updateSectionCounts() {
-  ['stories','tasks','bugs'].forEach(sec => {
+  ['stories','tasks','bugs','closed'].forEach(sec => {
     const rows = document.querySelectorAll(`#section-${sec} tbody tr:not(.child-row)`);
     const vis  = Array.from(rows).filter(r => r.dataset.filtered === 'true').length;
     const el   = document.getElementById('count-' + sec);
@@ -1664,7 +1720,7 @@ function applyPagination() {
     pager.style.display = 'flex';
   })();
 
-  ['stories','tasks','bugs'].forEach(sec => {
+  ['stories','tasks','bugs','closed'].forEach(sec => {
     const section = document.getElementById('section-' + sec);
     if (!section) return;
     const allRows  = Array.from(section.querySelectorAll('tbody tr'));
