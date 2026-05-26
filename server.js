@@ -390,6 +390,36 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
   }
 });
 
+// ── Latest comment fetch (for status cell hover tooltip) ──────────────────
+app.get('/api/comments/:key', requireAuth, async (req, res) => {
+  const key = req.params.key;
+  if (!/^[A-Z]+-\d+$/.test(key)) return res.status(400).json({ error: 'Invalid key' });
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured' });
+
+  const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  try {
+    const r = await fetch(
+      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=comment`,
+      { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } }
+    );
+    if (!r.ok) return res.status(r.status).json({ error: `Jira ${r.status}` });
+    const data = await r.json();
+    const comments = data.fields?.comment?.comments || [];
+    if (!comments.length) return res.json({ text: null });
+
+    const last   = comments[comments.length - 1];
+    const author = last.author?.displayName || 'Someone';
+    const date   = (last.created || '').substring(0, 10);
+    const body   = adfToText(last.body);
+    res.json({ author, date, body });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 // ── Single issue fetch (for tree child rows — always returns links) ─────────
 app.get('/api/issue/:key', requireAuth, async (req, res) => {
   const key = req.params.key;

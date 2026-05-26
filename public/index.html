@@ -1932,31 +1932,23 @@ function sortSection(th) {
   }
   function load(key, td) {
     if (cache[key] !== undefined) { if (activeTd === td) render(cache[key]); return; }
-    var token = localStorage.getItem('jira_api_token');
-    if (!token) {
-      cache[key] = 'ℹ️ API token not saved yet.\nClick the Jira △ button on any row to save it once.';
-      render(cache[key]); return;
-    }
     cache[key] = '⏳ Loading latest activity…'; render(cache[key]);
-    fetch(JIRA_BASE + '/rest/api/3/issue/' + key + '?fields=comment', {
-      headers: { 'Accept':'application/json', 'Authorization':'Basic '+btoa(JIRA_USER+':'+token) }
-    }).then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    fetch('/api/comments/' + encodeURIComponent(key))
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function(data) {
-      var comments = (data.fields && data.fields.comment && data.fields.comment.comments) || [];
       var text;
-      if (comments.length > 0) {
-        var last = comments[comments.length-1];
-        var author = (last.author && last.author.displayName) || 'Someone';
-        var date   = (last.created||'').substring(0,10);
-        var body   = adfText(last.body);
-        if (body.length > 130) body = body.substring(0, body.lastIndexOf(' ',130)) + '…';
-        text = '💬 ' + author + '  ·  ' + date + '\n' + (body||'(no text)');
-      } else { text = 'ℹ️ No comments yet on this ticket.'; }
+      if (data.body) {
+        var body = data.body;
+        if (body.length > 130) body = body.substring(0, body.lastIndexOf(' ', 130)) + '…';
+        text = '💬 ' + (data.author||'Someone') + '  ·  ' + (data.date||'') + '\n' + body;
+      } else {
+        text = 'ℹ️ No comments yet on this ticket.';
+      }
       cache[key] = text;
       if (activeTd === td) render(text);
     }).catch(function(err) {
-      var t = '⚠️ Fetch failed (' + (err.message||'error') + ').\nRe-save token via the Jira button.';
-      cache[key] = t; if (activeTd === td) render(t); delete cache[key];
+      cache[key] = '⚠️ Could not load comments.';
+      if (activeTd === td) render(cache[key]);
     });
   }
   document.addEventListener('mouseover', function(e) {
