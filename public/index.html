@@ -483,14 +483,6 @@
     .badge-type-story { background: rgba(108,99,255,0.12); color: var(--accent); border: 1px solid rgba(108,99,255,0.3); }
     .badge-type-task  { background: rgba(72,202,228,0.12); color: var(--blue); border: 1px solid rgba(72,202,228,0.3); }
 
-    /* DEVELOPMENT COLUMN */
-    .badge-sprint-active { background: rgba(46,213,115,0.15); color: var(--green);  border: 1px solid rgba(46,213,115,0.4); }
-    .badge-sprint-future { background: rgba(72,202,228,0.15); color: var(--blue);   border: 1px solid rgba(72,202,228,0.4); }
-    .dev-link { color: var(--muted); font-size: 11px; text-decoration: none; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; display: inline-block; transition: all 0.15s; }
-    .dev-link:hover { border-color: var(--accent); color: var(--accent); }
-    .dev-cell { white-space: nowrap; min-width: 140px; }
-    .dev-cell > span { margin-right: 4px; }
-
     .overdue { color: var(--red); font-weight: 600; }
     .due-soon { color: var(--orange); }
     tr.hidden { display: none; }
@@ -1322,9 +1314,8 @@ function renderDashboard(data) {
   document.getElementById('loading-state').style.display = 'none';
   document.getElementById('dashboard-content').style.display = 'block';
 
-  // After DOM is populated, inject dev column + action buttons, init filters
+  // After DOM is populated, inject action buttons, init filters
   setTimeout(() => {
-    injectDevColumns(tickets);
     injectActionButtons();
     document.querySelectorAll('tbody tr').forEach(r => {
       if (!r.classList.contains('child-row')) r.dataset.filtered = 'true';
@@ -1525,67 +1516,6 @@ function insertChildRows(parentRow, children, isBug, colspan) {
     row.innerHTML = cells;
     insertAfter.insertAdjacentElement('afterend', row);
     insertAfter = row;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DEV COLUMN INJECTION (uses issue.id → Jira dev-status API)
-// ═══════════════════════════════════════════════════════════════
-function injectDevColumns(tickets) {
-  const idMap = {};
-  tickets.forEach(t => { if (t.id) idMap[t.key] = t.id; });
-
-  function fmtDT(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const h = d.getHours(), mn = d.getMinutes(), ap = h>=12?'pm':'am';
-    return M[d.getMonth()]+' '+d.getDate()+' '+d.getFullYear()+', '+(h%12||12)+':'+(mn<10?'0'+mn:mn)+ap;
-  }
-
-  function renderDevCell(td, data) {
-    const pr = data && data.summary && data.summary.pullrequest && data.summary.pullrequest.overall;
-    const br = data && data.summary && data.summary.branch && data.summary.branch.overall;
-    if ((!pr || pr.count === 0) && (!br || br.count === 0)) { td.innerHTML = ''; return; }
-    const SC = { 'MERGED':'var(--green)', 'OPEN':'var(--blue)', 'DECLINED':'var(--red)' };
-    const SI = { 'MERGED':'✅', 'OPEN':'🔄', 'DECLINED':'❌' };
-    let html = '';
-    if (pr && pr.count > 0) {
-      if (pr.details && pr.details.length > 0) {
-        html += pr.details.map(d => `<span style="color:${SC[d.state]||'var(--muted)'};font-size:11px">${SI[d.state]||'•'} ${d.count} ${d.state}</span>`).join(' ');
-      } else {
-        html += `<span style="color:${SC[pr.state]||'var(--muted)'};font-size:11px">${SI[pr.state]||'•'} ${pr.count} PR</span>`;
-      }
-      if (pr.lastUpdated) html += `<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDT(pr.lastUpdated)}</div>`;
-    } else if (br && br.count > 0) {
-      html += `<span style="color:var(--blue);font-size:11px">🌿 ${br.count} branch</span>`;
-      if (br.lastUpdated) html += `<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDT(br.lastUpdated)}</div>`;
-    }
-    td.innerHTML = html;
-  }
-
-  ['table-stories','table-tasks','table-bugs'].forEach(tableId => {
-    const tbl = document.getElementById(tableId);
-    if (!tbl) return;
-    const devTh = document.createElement('th');
-    devTh.textContent = 'Development';
-    devTh.style.minWidth = '150px';
-    tbl.querySelector('thead tr').appendChild(devTh);
-    tbl.querySelectorAll('tbody tr').forEach(row => {
-      const keyEl = row.querySelector('td.key a');
-      const key   = keyEl ? keyEl.textContent.trim() : '';
-      const issueId = idMap[key];
-      const td    = document.createElement('td');
-      td.className = 'dev-cell';
-      if (!issueId) { td.innerHTML = ''; row.appendChild(td); return; }
-      td.innerHTML = '<span style="color:var(--muted);font-size:11px">⏳</span>';
-      row.appendChild(td);
-      fetch(JIRA_BASE + '/rest/dev-status/latest/issue/summary?issueId=' + issueId, {
-        credentials: 'include', headers: { 'Accept': 'application/json' }
-      }).then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => renderDevCell(td, d))
-        .catch(() => { td.innerHTML = ''; });
-    });
   });
 }
 

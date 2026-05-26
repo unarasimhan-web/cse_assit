@@ -304,7 +304,7 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
   }
 });
 
-// ── Ticket gist: summary + first paragraph of description ────────────────────
+// ── Ticket gist: AI-generated 2-liner via Claude Haiku ───────────────────────
 const _gistCache = {};
 
 function adfToPlainText(node) {
@@ -319,13 +319,9 @@ function adfToPlainText(node) {
   return '';
 }
 
-// Extract paragraphs as an array of plain-text strings, skipping empty ones
-function adfParagraphs(node) {
-  if (!node || !Array.isArray(node.content)) return [];
-  return node.content
-    .filter(n => n.type === 'paragraph')
-    .map(n => adfToPlainText(n).replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
+function adfToText(node) {
+  if (!node) return '';
+  return adfToPlainText(node).replace(/\s+/g, ' ').trim();
 }
 
 app.get('/api/gist/:key', requireAuth, async (req, res) => {
@@ -335,30 +331,42 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
 
   const jiraEmail = process.env.JIRA_EMAIL;
   const jiraToken = process.env.JIRA_API_TOKEN;
-  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira credentials not configured' });
+  if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira not configured' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set' });
 
   try {
+    // 1. Fetch ticket from Jira
     const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
     const r = await fetch(
-      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=summary,description`,
+      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=summary,description,issuetype,comment`,
       { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } }
     );
     if (!r.ok) return res.status(r.status).json({ error: `Jira ${r.status}` });
+    const issue   = await r.json();
+    const summary = (issue.fields?.summary || '').trim();
+    const desc    = adfToText(issue.fields?.description).slice(0, 1200);
 
-    const issue     = await r.json();
-    const summary   = (issue.fields?.summary || '').trim();
-    const paras     = adfParagraphs(issue.fields?.description);
+    // 2. Ask Claude Haiku for a concise 2-liner
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client    = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 120,
+      messages: [{
+        role: 'user',
+        content:
+          `Jira ticket summary: "${summary}"\n` +
+          `Description: ${desc || '(none)'}\n\n` +
+          `Write exactly 2 sentences (max 20 words each) that explain:\n` +
+          `1. What problem or gap this ticket is addressing.\n` +
+          `2. What the desired end result looks like.\n` +
+          `Plain English only. No jargon. No bullet points. No mention of the ticket ID.`
+      }]
+    });
 
-    // Pick the first paragraph that adds context beyond just repeating the summary
-    const firstPara = paras.find(p => p.length > 20 && p.toLowerCase() !== summary.toLowerCase()) || '';
-
-    // Truncate to ~160 chars so it fits cleanly in 2 lines
-    const truncate = (s, n) => s.length > n ? s.slice(0, s.lastIndexOf(' ', n) || n) + '…' : s;
-
-    const result = {
-      line1: truncate(summary, 120),
-      line2: truncate(firstPara, 160)
-    };
+    const gist   = (msg.content[0]?.text || '').trim();
+    const lines  = gist.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    const result = { line1: lines[0] || summary, line2: lines[1] || '' };
 
     _gistCache[key] = result;
     res.json(result);
