@@ -605,6 +605,37 @@
     /* Exec summary compact table */
     #table-exec td { padding: 5px 8px; }
     #table-exec th { padding: 5px 8px; }
+
+    /* ── Slack Context Section ─────────────────────────────────── */
+    .slack-tab {
+      padding: 8px 20px; font-size: 13px; font-weight: 600;
+      background: transparent; border: none; border-bottom: 3px solid transparent;
+      color: var(--muted); cursor: pointer; transition: color .15s, border-color .15s;
+    }
+    .slack-tab:hover { color: var(--fg); }
+    .slack-tab-active { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
+    .slack-panel { padding-top: 12px; }
+    .slack-thread {
+      border-left: 3px solid var(--accent); background: var(--card);
+      border-radius: 7px; padding: 12px 14px; margin-bottom: 12px;
+    }
+    .sth { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+    .sch { font-size:11px; font-weight:700; color:var(--accent); font-family:monospace; }
+    .sdt { font-size:11px; color:var(--muted); margin-left:auto; }
+    .stag { font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:10px; }
+    .stag-urgent { background:rgba(239,83,80,.15); color:#ef5350; }
+    .stag-warn    { background:rgba(255,193,7,.15);  color:#ffc107; }
+    .stag-info    { background:rgba(100,181,246,.15);color:#64b5f6; }
+    .stag-ok      { background:rgba(102,187,106,.15);color:#66bb6a; }
+    .stitle { font-size:13px; font-weight:600; color:var(--fg); margin-bottom:6px; }
+    .smsgs { display:flex; flex-direction:column; gap:4px; }
+    .smsg  { font-size:12px; color:var(--muted); line-height:1.5; }
+    .smsg b { color:var(--fg); font-weight:600; margin-right:4px; }
+    .sts   { font-size:10.5px; color:var(--muted); margin-right:6px; margin-left:4px; }
+    .sflag { margin-top:8px; font-size:12px; padding:5px 9px; border-radius:5px; }
+    .sflag-urgent { background:rgba(239,83,80,.10); color:#ef5350; }
+    .sflag-warn   { background:rgba(255,193,7,.10);  color:#ffc107; }
+    .sflag-info   { background:rgba(100,181,246,.10);color:#64b5f6; }
   </style>
 </head>
 <body>
@@ -733,7 +764,9 @@
             <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="padding:5px 8px;width:70px">Priority</th>
             <th style="padding:5px 8px;width:130px">Assignee</th>
             <th data-col="5" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">ETA</th>
-            <th data-col="6" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">Created</th>
+            <th data-col="6" data-sorttype="number" onclick="sortSection(this)" style="padding:5px 8px;width:75px;text-align:center" title="# of ETA/update comments from CS team">CS Follow-ups</th>
+            <th data-col="7" data-sorttype="number" onclick="sortSection(this)" style="padding:5px 8px;width:70px;text-align:center" title="Times ticket rolled over from one sprint to another">Rollover</th>
+            <th data-col="8" data-sorttype="date" onclick="sortSection(this)" style="padding:5px 8px;width:90px">Created</th>
           </tr>
         </thead>
         <tbody id="exec-tbody"></tbody>
@@ -771,7 +804,9 @@
             <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
             <th style="width:140px">Assignee</th>
             <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
-            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+            <th data-col="6" data-sorttype="number" onclick="sortSection(this)" style="width:80px;text-align:center" title="# of ETA/update comments from CS team">CS Follow-ups</th>
+            <th data-col="7" data-sorttype="number" onclick="sortSection(this)" style="width:70px;text-align:center" title="Times ticket rolled over from one sprint to another">Rollover</th>
+            <th data-col="8" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
           </tr></thead>
           <tbody id="tbody-stories"></tbody>
         </table>
@@ -794,7 +829,9 @@
             <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
             <th style="width:140px">Assignee</th>
             <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
-            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+            <th data-col="6" data-sorttype="number" onclick="sortSection(this)" style="width:80px;text-align:center" title="# of ETA/update comments from CS team">CS Follow-ups</th>
+            <th data-col="7" data-sorttype="number" onclick="sortSection(this)" style="width:70px;text-align:center" title="Times ticket rolled over from one sprint to another">Rollover</th>
+            <th data-col="8" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
           </tr></thead>
           <tbody id="tbody-tasks"></tbody>
         </table>
@@ -839,14 +876,198 @@
             <th data-col="3" data-sorttype="priority" onclick="sortSection(this)" style="width:80px">Priority</th>
             <th style="width:140px">Assignee</th>
             <th data-col="5" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">ETA</th>
-            <th data-col="6" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Created</th>
-            <th data-col="7" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
+            <th data-col="6" data-sorttype="number" onclick="sortSection(this)" style="width:80px;text-align:center" title="# of ETA/update comments from CS team">CS Follow-ups</th>
+            <th data-col="7" data-sorttype="number" onclick="sortSection(this)" style="width:70px;text-align:center" title="Times ticket rolled over from one sprint to another">Rollover</th>
+            <th data-col="8" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Created</th>
+            <th data-col="9" data-sorttype="date"     onclick="sortSection(this)" style="width:100px">Updated</th>
           </tr></thead>
           <tbody id="tbody-bugs"></tbody>
         </table>
       </div>
       <div class="pager" id="pager-bugs" style="display:none"></div>
     </div>
+
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SLACK CONTEXT SECTION
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="section" id="section-slack">
+      <div class="section-header" style="cursor:pointer;user-select:none" onclick="toggleSlack()">
+        <span class="section-title">💬 Slack Context <span style="font-size:12px;color:var(--muted);font-weight:400">(last 10 days · as of Jun 3–4 2026)</span></span>
+        <span id="slack-toggle-icon" style="font-size:13px;color:var(--muted);margin-left:8px">▲</span>
+      </div>
+
+      <!-- LOOSE ENDS BANNER -->
+      <div id="slack-loose-ends" style="margin:10px 0 16px;padding:12px 16px;background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.3);border-radius:8px;">
+        <div style="font-size:13px;font-weight:700;color:#ef5350;margin-bottom:8px;">⚠️ Needs Attention / Loose Ends</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:1.6;">
+          <div>🔴 <strong>EMU Repos Missing Tags (Ticket 1516494)</strong> — 920+ OnePayPal repos have no <code>armorcode.repo.property.*</code> tags. Customer explicitly marking urgent. Needs ETA + regular update cadence.</div>
+          <div>🔴 <strong>Wiz Runbooks → Prod?</strong> — Sandeep (PayPal) asked Priyansh for prod readiness + benchmarking confirmation. No response visible yet.</div>
+          <div>🟡 <strong>Customer Call: ENG-118446 Fix Review</strong> — PayPal wants an on-call review with Prabhas. Prabhas said he'd "get back" — follow-through needed.</div>
+          <div>🟡 <strong>4 Tickets Awaiting Updates</strong> — Lyden asked for updates on <a href="https://support.armorcode.com/hc/en-us/requests/1515943" target="_blank">1515943</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515969" target="_blank">1515969</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">1515502</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515057" target="_blank">1515057</a>. Hari to check internally — no confirmation visible.</div>
+          <div>🟡 <strong>Container Security Priorities</strong> — Customer listed 5 items for next call: RCE T/F, DoS T/F, Mitigation→Remediation, AC Connect, Ownership Correlation. Confirm owners + ETAs.</div>
+          <div>🟡 <strong>ENG-120209: Ownership &amp; Custom Attributes as Tags</strong> — Nick flagged tags missing for group/subgroupings. No assignee response visible.</div>
+          <div>🟡 <strong>JIRA Dev Questions / AC-Connect (Ticket 1515502)</strong> — Lyden's questions on default views. Ankit asked CS to reply in ext-paypal channel — pending.</div>
+          <div>🟡 <strong>AIEM + SBOM Strategy</strong> — Eric waiting on AIEM next steps from Prabhas. SBOM owner with PayPal not confirmed.</div>
+          <div>🟡 <strong>Old→New Mapping Suspension</strong> — Customer approval to suspend existing CrowdStrike mapping still pending.</div>
+          <div>✅ <strong>SLA Finding 90% (ENG-124462)</strong> — Resolved &amp; communicated. Monitor fix rollout.</div>
+        </div>
+      </div>
+
+      <div id="slack-body">
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;">
+          <button class="slack-tab slack-tab-active" onclick="switchSlackTab('internal',this)">🔒 Internal Channels</button>
+          <button class="slack-tab" onclick="switchSlackTab('external',this)">🌐 External Channel</button>
+        </div>
+
+        <!-- INTERNAL PANEL -->
+        <div id="slack-panel-internal" class="slack-panel">
+          <div style="font-size:11px;color:var(--muted);margin:8px 0 12px;font-style:italic">#internal-paypal &nbsp;·&nbsp; #paypal-prep</div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#internal-paypal</span><span class="sdt">Jun 3 – May 27</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">AIEM &amp; SBOM Strategy with PayPal</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Eric Breuninger</b><span class="sts">Jun 3</span> Where are we with AIEM with PayPal? What are next steps &amp; who to follow up with?</div>
+              <div class="smsg"><b>Nikhil G</b><span class="sts">May 27</span> I'm driving AIEM discussions. Check with PayPal CSM &amp; Mark Lambert on who's pushing SBOM.</div>
+              <div class="smsg"><b>Nikhil G</b><span class="sts">May 27</span> @Shri — has the CSM team talked about SBOM with PayPal?</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ No confirmed owner for SBOM; AIEM next steps unresolved.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 4</span><span class="stag stag-info">In Progress</span></div>
+            <div class="stitle">CrowdStrike Container Security — ENG-118446 Polling Timeout Fix</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Tarun Singh Yadav</b><span class="sts">Jun 4 13:23</span> New mapping: CrowdStrike Falcon → Container Security. Report generation exceeds current polling timeout (not configurable). Fix to increase &amp; make configurable — delivery tomorrow.</div>
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:23</span> Customer informed. Fix flushed out tomorrow?</div>
+              <div class="smsg"><b>Tarun Singh Yadav</b><span class="sts">Jun 4 13:25</span> Yes.</div>
+            </div>
+            <div class="sflag sflag-info">🔵 Fix ETA: Jun 5. Monitor delivery &amp; verify with customer.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 3–4</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">Old vs New Mapping Differentiation (ENG-118446)</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Bhumita Vasoya</b><span class="sts">Jun 3</span> Release deployed. Internal verification underway. Will suspend old mapping if successful. <strong>Need customer approval to suspend.</strong></div>
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 3</span> PayPal asks: Can they differentiate between old &amp; new mapping data?</div>
+              <div class="smsg"><b>Bhumita Vasoya</b><span class="sts">Jun 4</span> Old sub-group = "CrowdStrike Falcon Container Security". New = "Container Security".</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ Customer approval to suspend old mapping still pending.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 3–4</span><span class="stag stag-urgent">🔴 Action Required</span></div>
+            <div class="stitle">Customer Call: ENG-118446 Fix Review + Wiz</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Md Ubaidur Rahman</b><span class="sts">Jun 3</span> Customer wants to review fix on-call with Prabhas to confirm requirements met. Also needs Prabhas for Wiz.</div>
+              <div class="smsg"><b>Prabhas Gupte</b><span class="sts">Jun 4</span> Difficult to join. Reviewing ticket now — not flagged earlier, lacks background. Will get back.</div>
+            </div>
+            <div class="sflag sflag-urgent">🔴 Prabhas availability unconfirmed. Customer call not yet scheduled.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 4</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">Runbook Best Practices &amp; Benchmarking Evaluation</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Ankit Singhal</b><span class="sts">Jun 4 05:16</span> @Priyansh — share runbook evaluation steps again for CS team.</div>
+              <div class="smsg"><b>Priyansh Sharma</b><span class="sts">Jun 4 06:28</span> Usually stuck at points 4 &amp; 5. <a href="https://armorcodeinc.atlassian.net/wiki/spaces/EN/pages/2469920791" target="_blank">Best Practices</a> · <a href="https://armorcodeinc.atlassian.net/wiki/spaces/EN/pages/2526675031" target="_blank">Benchmarking Guide</a>. Wiz benchmarking may not be possible — no runbook executions.</div>
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:44</span> I have time later today — should be able to get some info.</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ Nick to follow up today. Wiz benchmarking blocker needs clarification.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 2–3</span><span class="stag stag-ok">✅ Resolved</span></div>
+            <div class="stitle">SLA % Bug — Finding 11214199877 (ENG-124462)</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 2</span> Why is SLA % showing 90.0 for this finding? Customer flagged in PayPal channel.</div>
+              <div class="smsg"><b>Ganesh KVKS</b><span class="sts">Jun 2</span> Initial % was 89.997 — rounded to 90.0 in tag. Further executions fell to ~86 but custom field didn't update (groovy flow ignores tag updates). Created <a href="https://armorcodeinc.atlassian.net/browse/ENG-124462" target="_blank">ENG-124462</a>. Recalculated every 6 hrs; counts only in impact field.</div>
+            </div>
+            <div class="sflag sflag-info">🔵 ENG-124462 created. Customer informed. Monitor fix rollout.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">May 29 – Jun 4</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">JIRA Dev Questions &amp; ENG-120209 (Ownership/Custom Attrs as Tags)</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">May 29</span> Lyden's questions on AC-Connect: 1) Default view for teams. 2) Default view per vertical (infra/container/app-sec). <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">Ticket 1515502</a>.</div>
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">May 29</span> <a href="https://armorcodeinc.atlassian.net/browse/ENG-120209" target="_blank">ENG-120209</a> — ownership &amp; custom attributes not appearing as tags for group/subgroupings.</div>
+              <div class="smsg"><b>Ankit Singhal</b><span class="sts">Jun 4</span> @Nick — can someone from CS reply in ext-paypal?</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ CS reply to ext-paypal thread pending. ENG-120209 ownership tags unresolved.</div>
+          </div>
+
+        </div><!-- /slack-panel-internal -->
+
+        <!-- EXTERNAL PANEL -->
+        <div id="slack-panel-external" class="slack-panel" style="display:none">
+          <div style="font-size:11px;color:var(--muted);margin:8px 0 12px;font-style:italic">#ext-paypal-armorcode</div>
+
+          <div class="slack-thread" style="border-left-color:#ef5350;">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 4</span><span class="stag stag-urgent">🔴 Urgent</span></div>
+            <div class="stitle">EMU Repos Missing Tags — <a href="https://support.armorcode.com/hc/en-us/requests/1516494" target="_blank">Ticket 1516494</a></div>
+            <div class="smsgs">
+              <div class="smsg"><b>sjalal (PayPal)</b><span class="sts">Jun 4 10:14</span> 920+ EMU repos in OnePayPal/ org have no <code>armorcode.repo.property.*</code> tags despite GitHub custom properties set. Impact: broken high-risk classification, prioritization &amp; SLA logic.</div>
+              <div class="smsg"><b>Jagjot Singh</b><span class="sts">Jun 4 12:00</span> Raised with Engg team — will keep posted.</div>
+              <div class="smsg"><b>ktoprani (PayPal)</b><span class="sts">Jun 4 13:39</span> <strong>Urgent priority — please provide regular updates.</strong></div>
+              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:40</span> With internal engineering team.</div>
+            </div>
+            <div class="sflag sflag-urgent">🔴 920+ repos affected. Customer escalating. Needs ETA + regular comms cadence established.</div>
+          </div>
+
+          <div class="slack-thread" style="border-left-color:#ef5350;">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 4</span><span class="stag stag-urgent">🔴 Urgent</span></div>
+            <div class="stitle">Wiz Runbooks — Production Readiness &amp; Benchmarking</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Sandeep Sivanandan (PayPal)</b><span class="sts">Jun 4 04:12</span> Checking on Wiz runbooks — ready for Prod? What about performance benchmarking?</div>
+            </div>
+            <div class="sflag sflag-urgent">🔴 No response from Priyansh yet. Customer waiting on confirmation.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 3</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">Container Security Priorities (Next Call with Prabhas)</div>
+            <div class="smsgs">
+              <div class="smsg"><b>jgomezangulo (PayPal)</b><span class="sts">Jun 3 16:55</span> Priorities highlighted: RCE True/False, DoS True/False, Mitigation→Remediation Action, AC Connect, Ownership Correlation.</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ 5 items from customer. Confirm each has an owner &amp; ETA before next call.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 3</span><span class="stag stag-warn">Needs Follow-up</span></div>
+            <div class="stitle">General Ticket Update Request — Lyden</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">Jun 3 15:54</span> Requesting updates on: <a href="https://support.armorcode.com/hc/en-us/requests/1515943" target="_blank">1515943</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515969" target="_blank">1515969</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">1515502</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515057" target="_blank">1515057</a>.</div>
+              <div class="smsg"><b>Hari Rama Krishna</b><span class="sts">Jun 3 21:28</span> I will check internally and provide updates.</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ Hari to update — no confirmation yet visible.</div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 1–3</span><span class="stag stag-ok">✅ Resolved</span></div>
+            <div class="stitle">SLA Finding Status — 90% Finding</div>
+            <div class="smsgs">
+              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">Jun 1</span> Findings at 90% shouldn't be open — why is this one?</div>
+              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 2</span> Engineering team on it. ETA tomorrow.</div>
+              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 3</span> Resolved — please take a look.</div>
+            </div>
+          </div>
+
+          <div class="slack-thread">
+            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">May 29</span><span class="stag stag-info">In Progress</span></div>
+            <div class="stitle">Ownership Correlation Issue — <a href="https://support.armorcode.com/hc/en-us/requests/1516336" target="_blank">Ticket 1516336</a></div>
+            <div class="smsgs">
+              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">May 29</span> Here is the ticket for ownership correlation issue.</div>
+              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">May 29</span> Sure, thanks!</div>
+            </div>
+            <div class="sflag sflag-warn">⚠️ Open ticket — track resolution progress.</div>
+          </div>
+
+        </div><!-- /slack-panel-external -->
+      </div><!-- /slack-body -->
+    </div><!-- /section-slack -->
 
   </div><!-- /dashboard-content -->
 
@@ -997,7 +1218,7 @@ function renderDashboard(data) {
 
   // JQL links for stat cards
   const JBASE = JIRA_BASE + '/issues/?jql=';
-  const baseJQL = 'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC) AND created >= -90d AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred") AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)';
+  const baseJQL = 'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC) AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc) AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred") AND created >= -90d';
 
   renderStatCards([
     { num: allNonBug.length,   color: 'c-accent',  label: 'Open Tickets',  jql: baseJQL + ' AND issuetype != Bug ORDER BY priority ASC' },
@@ -1317,14 +1538,27 @@ function renderDashboard(data) {
     const etaDisp = eta ? fmtDate(eta) : '—';
     const etaAttr = eta ? ` data-sort="${eta}"` : '';
     const etaStyle = etaColor(eta);
+    const csCount = t.csReachouts || 0;
+    const csWho   = (t.csReachoutBy || []).join(' + ') || '';
+    const csInfo  = csCount ? `${csWho} asked for an ETA or update ${csCount}x` : '';
+    const csCellHtml = csCount > 0
+      ? `<span class="cs-badge" style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,212,170,0.12);border:1px solid var(--accent2);color:var(--accent2);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;cursor:default" data-cs-info="${escHtml(csInfo)}" data-cs-who="${escHtml(csWho)}" data-cs-count="${csCount}">💬 ${csCount}</span>`
+      : `<span style="color:var(--muted);font-size:11px">—</span>`;
+    const rollCount = t.rollovers || 0;
+    const rollTrailExec = (t.sprintTrail || []);
+    const rollCellHtml = rollCount > 0
+      ? `<span class="roll-badge" style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,159,67,0.12);border:1px solid var(--orange);color:var(--orange);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;cursor:default" data-sprint-trail="${escHtml(JSON.stringify(rollTrailExec))}">🔄 ${rollCount}</span>`
+      : `<span style="color:var(--muted);font-size:11px">—</span>`;
     return `<tr data-exec-idx="${idx}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="${escHtml(eta||'')}" style="border-bottom:1px solid var(--border)">
       <td><a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank" style="color:var(--accent)">${escHtml(t.key)}</a></td>
-      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.summary)}">${escHtml(t.summary)}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.summary)}">${escHtml(t.summary)}</td>
       <td><span class="${statusBadgeClass(t.status)}" style="font-size:10px">${escHtml(t.status)}</span></td>
       <td><span class="${priorityBadgeClass(t.priority)}" style="font-size:10px">${escHtml(t.priority||'—')}</span></td>
       <td style="font-size:12px;color:${t.assignee ? 'var(--text)' : 'var(--red)'}">
         ${t.assignee ? escHtml(t.assignee) : '⚠ Unassigned'}</td>
       <td${etaAttr} ${etaStyle}>${etaDisp}</td>
+      <td style="padding:5px 8px;text-align:center" data-sort="${csCount}">${csCellHtml}</td>
+      <td style="padding:5px 8px;text-align:center" data-sort="${rollCount}">${rollCellHtml}</td>
       <td style="font-size:11px;color:var(--muted)">${t.created ? t.created.substring(0,10) : '—'}</td>
     </tr>`;
   }).join('');
@@ -1371,7 +1605,7 @@ const _childRowCache = {};
 function renderSection(sec, tickets, isBug) {
   const tbody = document.getElementById('tbody-' + sec);
   if (!tickets.length) {
-    tbody.innerHTML = `<tr><td colspan="${isBug?8:7}" style="text-align:center;color:var(--muted);padding:28px">No ${sec} found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${isBug?10:9}" style="text-align:center;color:var(--muted);padding:28px">No ${sec} found</td></tr>`;
     document.getElementById('section-' + sec).style.display = 'none';
     document.getElementById('count-' + sec).textContent = '0';
     return;
@@ -1409,13 +1643,30 @@ function renderSection(sec, tickets, isBug) {
     // data attrs for filter/sort + action button
     const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="${escHtml(eta||'')}"`;
 
+    // CS follow-up cell
+    const csCount = t.csReachouts || 0;
+    const csWho   = (t.csReachoutBy || []).join(' + ') || '';
+    const csInfo  = csCount ? `${csWho} asked for an ETA or update ${csCount}x` : '';
+    const csCellHtml = csCount > 0
+      ? `<span class="cs-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,212,170,0.12);border:1px solid var(--accent2);color:var(--accent2);border-radius:12px;padding:2px 8px;font-size:11px;font-weight:600;cursor:default" data-cs-info="${escHtml(csInfo)}" data-cs-who="${escHtml(csWho)}" data-cs-count="${csCount}">💬 ${csCount}</span>`
+      : `<span style="color:var(--muted);font-size:11px">—</span>`;
+
+    // Rollover cell
+    const rollCount = t.rollovers || 0;
+    const rollTrail = (t.sprintTrail || []);
+    const rollCellHtml = rollCount > 0
+      ? `<span class="roll-badge" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,159,67,0.12);border:1px solid var(--orange);color:var(--orange);border-radius:12px;padding:2px 8px;font-size:11px;font-weight:600;cursor:default" data-sprint-trail="${escHtml(JSON.stringify(rollTrail))}">🔄 ${rollCount}</span>`
+      : `<span style="color:var(--muted);font-size:11px">—</span>`;
+
     let cells = `
       <td class="key">${toggleHtml}<a href="${JIRA_BASE}/browse/${escHtml(t.key)}" target="_blank">${escHtml(t.key)}</a></td>
       <td class="summary"><span title="${escHtml(t.summary)}">${escHtml(t.summary)}</span></td>
       <td><span class="${statClass}">${escHtml(t.status)}</span></td>
       <td><span class="${priClass}">${escHtml(t.priority||'—')}</span></td>
       <td>${assigneeHtml}</td>
-      <td${etaAttr} ${etaS}>${etaDisp}</td>`;
+      <td${etaAttr} ${etaS}>${etaDisp}</td>
+      <td style="text-align:center" data-sort="${csCount}">${csCellHtml}</td>
+      <td style="text-align:center" data-sort="${rollCount}">${rollCellHtml}</td>`;
 
     if (isBug) {
       cells += `<td style="font-size:11px;color:var(--muted)">${creDisp}</td>
@@ -1563,7 +1814,7 @@ function insertChildRows(parentRow, children, isBug, colspan) {
       cells += `<td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
     }
     // Pad remaining columns (Dev + Actions added dynamically)
-    const extraCols = Math.max(0, colspan - (isBug ? 8 : 7));
+    const extraCols = Math.max(0, colspan - (isBug ? 9 : 8));
     for (let i = 0; i < extraCols; i++) cells += '<td></td>';
 
     const row = document.createElement('tr');
@@ -1842,6 +2093,8 @@ fetch('/api/me').then(r => r.json()).then(u => {
   }
 }).catch(() => {});
 
+// visits are logged server-side to Google Sheets silently
+
 // ═══════════════════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════════════════
@@ -1882,6 +2135,11 @@ function sortSection(th) {
       var aR = PRIORITY_RANK[aVal.toLowerCase()] !== undefined ? PRIORITY_RANK[aVal.toLowerCase()] : 99;
       var bR = PRIORITY_RANK[bVal.toLowerCase()] !== undefined ? PRIORITY_RANK[bVal.toLowerCase()] : 99;
       return dir === 'asc' ? aR - bR : bR - aR;
+    }
+    if (sorttype === 'number') {
+      var aN = parseFloat(aVal) || 0;
+      var bN = parseFloat(bVal) || 0;
+      return dir === 'asc' ? aN - bN : bN - aN;
     }
     if (sorttype === 'date') {
       var aD = (!aVal || aVal === '—') ? (dir==='asc'?new Date(9999,0):new Date(0)) : new Date(aVal);
@@ -1961,9 +2219,266 @@ function sortSection(th) {
     var td = e.target.closest('td'); if (td && td === activeTd) { stt.style.display='none'; activeTd=null; }
   });
 })();
+
+// ── Ticket ID hover → gist tooltip (description + crisp ask) ───────────────
+(function() {
+  var cache = {}, activeEl = null;
+
+  var tip = document.createElement('div');
+  tip.style.cssText = [
+    'display:none',
+    'position:fixed',
+    'z-index:10001',
+    'background:#1a1d27',
+    'border:1px solid #6c63ff55',
+    'border-radius:10px',
+    'padding:12px 16px',
+    'max-width:340px',
+    'font-size:12px',
+    'line-height:1.65',
+    'color:#e8eaf6',
+    'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+    'pointer-events:none',
+    'font-family:Segoe UI,system-ui,sans-serif',
+  ].join(';');
+  document.body.appendChild(tip);
+
+  function render(line1, line2, key) {
+    tip.innerHTML =
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + ' — Quick Summary</div>' +
+      '<div style="color:#c5c9e8;margin-bottom:6px;font-weight:500">' + escHtml(line1) + '</div>' +
+      (line2 ? '<div style="color:#8b91b5;font-size:11px;border-top:1px solid #2e3150;padding-top:6px;margin-top:2px">' + escHtml(line2) + '</div>' : '');
+    tip.style.display = 'block';
+  }
+
+  function move(e) {
+    var x = e.clientX + 20, y = e.clientY + 22;
+    if (x + 350 > window.innerWidth)  x = e.clientX - 355;
+    if (y + 140 > window.innerHeight) y = e.clientY - 130;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  function load(key, el) {
+    if (cache[key]) {
+      if (activeEl === el) render(cache[key].line1, cache[key].line2, key);
+      return;
+    }
+    // Show a spinner while fetching
+    tip.innerHTML =
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + '</div>' +
+      '<div style="color:#8b91b5">⏳ Summarising…</div>';
+    tip.style.display = 'block';
+
+    fetch('/api/gist/' + encodeURIComponent(key))
+      .then(function(r) {
+        if (r.ok) return r.json();
+        return r.json().catch(function() { return {}; }).then(function(body) {
+          return Promise.reject({ status: r.status, msg: body.error || ('HTTP ' + r.status) });
+        });
+      })
+      .then(function(d) {
+        cache[key] = { line1: d.line1 || key, line2: d.line2 || '' };
+        if (activeEl === el) render(cache[key].line1, cache[key].line2, key);
+      })
+      .catch(function(err) {
+        var status = err && err.status;
+        var detail = err && err.msg ? err.msg : 'network error';
+        // Don't cache rate-limit errors — next hover will retry
+        if (status !== 429) cache[key] = { line1: '⚠ ' + detail, line2: '' };
+        if (activeEl === el) render(detail, status === 429 ? 'Hover again in a moment…' : '', key);
+      });
+  }
+
+  function isKeyLink(el) {
+    // Must be an <a> inside a td.key, not a child-row
+    if (el.tagName !== 'A') return false;
+    var td = el.closest('td');
+    if (!td || !td.classList.contains('key')) return false;
+    var tr = td.closest('tr');
+    return tr && !tr.classList.contains('child-row');
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    var el = e.target.closest('a');
+    if (!el || !isKeyLink(el)) return;
+    var key = el.textContent.trim();
+    if (!key || !/^[A-Z]+-\d+$/.test(key)) return;
+    activeEl = el;
+    load(key, el);
+    move(e);
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'block' && activeEl) move(e);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    var el = e.target.closest('a');
+    if (el && el === activeEl) { tip.style.display = 'none'; activeEl = null; }
+  });
+})();
+
+// ── CS follow-up badge hover → instant custom tooltip ──────────
+(function() {
+  var activeBadge = null;
+
+  var tip = document.createElement('div');
+  tip.style.cssText = [
+    'display:none',
+    'position:fixed',
+    'z-index:10002',
+    'background:#1a1d27',
+    'border:1px solid #00d4aa55',
+    'border-radius:10px',
+    'padding:10px 14px',
+    'max-width:300px',
+    'font-size:12px',
+    'line-height:1.7',
+    'color:#e8eaf6',
+    'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+    'pointer-events:none',
+    'font-family:Segoe UI,system-ui,sans-serif',
+  ].join(';');
+  document.body.appendChild(tip);
+
+  function render(badge) {
+    var who   = badge.dataset.csWho   || '';
+    var count = badge.dataset.csCount || '0';
+    tip.innerHTML =
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#00d4aa;margin-bottom:7px;text-transform:uppercase">💬 CS Follow-up Detail</div>' +
+      '<div style="margin-bottom:4px"><span style="color:#8b91b5;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Who&nbsp;&nbsp;&nbsp;&nbsp;</span>' +
+      '<span style="color:#e8eaf6;font-weight:500">' + escHtml(who || '—') + '</span></div>' +
+      '<div><span style="color:#8b91b5;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Count&nbsp;&nbsp;</span>' +
+      '<span style="color:#00d4aa;font-weight:700">' + escHtml(count) + 'x</span>' +
+      '<span style="color:#8b91b5;font-size:11px"> ETA / status update requests</span></div>';
+    tip.style.display = 'block';
+  }
+
+  function move(e) {
+    var x = e.clientX + 20, y = e.clientY + 22;
+    if (x + 310 > window.innerWidth)  x = e.clientX - 315;
+    if (y + 100 > window.innerHeight) y = e.clientY - 90;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    var badge = e.target.closest('.cs-badge');
+    if (!badge) return;
+    activeBadge = badge;
+    render(badge);
+    move(e);
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'block' && activeBadge) move(e);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    var badge = e.target.closest('.cs-badge');
+    if (badge && badge === activeBadge) { tip.style.display = 'none'; activeBadge = null; }
+  });
+})();
+
+// ── Rollover badge hover → sprint trail tooltip ─────────────────
+(function() {
+  var activeBadge = null;
+
+  var tip = document.createElement('div');
+  tip.style.cssText = [
+    'display:none',
+    'position:fixed',
+    'z-index:10002',
+    'background:#1a1d27',
+    'border:1px solid #ff9f4380',
+    'border-radius:10px',
+    'padding:10px 14px',
+    'max-width:320px',
+    'font-size:12px',
+    'line-height:1.7',
+    'color:#e8eaf6',
+    'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+    'pointer-events:none',
+    'font-family:Segoe UI,system-ui,sans-serif',
+  ].join(';');
+  document.body.appendChild(tip);
+
+  function render(trail) {
+    var first   = trail[0]  || '?';
+    var current = trail[trail.length - 1] || '?';
+    var header  = '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#ff9f43;margin-bottom:7px;text-transform:uppercase">🔄 Sprint Rollover Trail</div>';
+    var summary = '<div style="margin-bottom:6px"><span style="color:#8b91b5;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">From&nbsp;&nbsp;&nbsp;&nbsp;</span>'
+                + '<span style="color:#ffd60a;font-weight:600">' + escHtml(first) + '</span>'
+                + '&nbsp;→&nbsp;<span style="color:#2ed573;font-weight:600">' + escHtml(current) + '</span></div>';
+    var steps   = trail.length > 1
+      ? '<div style="color:#8b91b5;font-size:10px;border-top:1px solid #2e3150;padding-top:6px;margin-top:2px">'
+        + trail.map(function(s, i) {
+            var dot = i === 0 ? '🟡' : (i === trail.length - 1 ? '🟢' : '⬜');
+            return dot + ' ' + escHtml(s);
+          }).join('&nbsp;→&nbsp;')
+        + '</div>'
+      : '';
+    tip.innerHTML = header + summary + steps;
+    tip.style.display = 'block';
+  }
+
+  function move(e) {
+    var x = e.clientX + 20, y = e.clientY + 22;
+    if (x + 330 > window.innerWidth)  x = e.clientX - 335;
+    if (y + 120 > window.innerHeight) y = e.clientY - 110;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    var badge = e.target.closest('.roll-badge');
+    if (!badge) return;
+    var raw = badge.dataset.sprintTrail;
+    if (!raw) return;
+    try {
+      var trail = JSON.parse(raw);
+      if (!trail.length) return;
+      activeBadge = badge;
+      render(trail);
+      move(e);
+    } catch(err) {}
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'block' && activeBadge) move(e);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    var badge = e.target.closest('.roll-badge');
+    if (badge && badge === activeBadge) { tip.style.display = 'none'; activeBadge = null; }
+  });
+})();
 </script>
 
 
+
+
+<script>
+function toggleSlack() {
+  var body = document.getElementById('slack-body');
+  var icon = document.getElementById('slack-toggle-icon');
+  var loose = document.getElementById('slack-loose-ends');
+  if (body.style.display === 'none') {
+    body.style.display = ''; loose.style.display = '';
+    icon.textContent = '▲';
+  } else {
+    body.style.display = 'none'; loose.style.display = 'none';
+    icon.textContent = '▼';
+  }
+}
+function switchSlackTab(which, btn) {
+  document.getElementById('slack-panel-internal').style.display = (which==='internal') ? '' : 'none';
+  document.getElementById('slack-panel-external').style.display = (which==='external') ? '' : 'none';
+  document.querySelectorAll('.slack-tab').forEach(function(t){ t.classList.remove('slack-tab-active'); });
+  btn.classList.add('slack-tab-active');
+}
+</script>
 
 </body>
 </html>

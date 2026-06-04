@@ -5,10 +5,69 @@ const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const path = require('path');
 require('dotenv').config();
 
+// ── Google Sheets visitor tracking ────────────────────────────────────────────
+const { google } = require('googleapis');
+
+function getSheetsClient() {
+  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (!keyJson) return null;
+  try {
+    const creds = JSON.parse(keyJson);
+    const auth = new google.auth.GoogleAuth({
+      credentials: creds,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    return google.sheets({ version: 'v4', auth });
+  } catch (e) {
+    console.error('[Sheets] Failed to init client:', e.message);
+    return null;
+  }
+}
+
+async function logVisit(user) {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const sheets  = getSheetsClient();
+  if (!sheetId || !sheets) return;
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'Visits!A:D',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          new Date().toISOString(),
+          user.name  || '',
+          user.email || '',
+          'Dashboard',
+        ]],
+      },
+    });
+  } catch (e) {
+    console.error('[Sheets] logVisit error:', e.message);
+  }
+}
+
+async function getVisits() {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const sheets  = getSheetsClient();
+  if (!sheetId || !sheets) return null;
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'Visits!A:D',
+    });
+    const rows = (res.data.values || []).slice(1); // skip header
+    return rows;
+  } catch (e) {
+    console.error('[Sheets] getVisits error:', e.message);
+    return null;
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const ALLOWED_DOMAIN = 'armorcode.io';
-const BASE_URL = 'https://cse-assit-983405469928.europe-west1.run.app';
+const BASE_URL = process.env.BASE_URL || 'https://customer-360-vosbz2bghq-ew.a.run.app';
 
 // Trust Cloud Run's proxy so secure cookies work over HTTPS
 app.set('trust proxy', 1);
@@ -52,7 +111,7 @@ passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: `${BASE_URL}/auth/google/callback`,
-  hd: ALLOWED_DOMAIN,
+  scope: ['profile', 'email'],
 }, (accessToken, refreshToken, profile, done) => {
   const email = profile.emails?.[0]?.value || '';
   const domain = email.split('@')[1];
@@ -103,7 +162,7 @@ function requireAuth(req, res, next) {
 
 // ── Routes ─────────────────────────────────────────────────────────────────
 app.get('/auth/google', (req, res, next) => {
-  const opts = { scope: ['profile', 'email'], hd: ALLOWED_DOMAIN };
+  const opts = { scope: ['profile', 'email'] };
   if (req.query.prompt) opts.prompt = req.query.prompt;
   passport.authenticate('google', opts)(req, res, next);
 });
@@ -169,24 +228,14 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   const jql = [
     'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
     'AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)',
-    'AND issuetype != Bug',
-    'AND (',
-      '(',
-        'created >= -90d',
-        'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
-      ')',
-      'OR',
-      '(',
-        'status IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
-        'AND updated >= -7d',
-      ')',
-    ')',
-    'ORDER BY priority ASC'
+    'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
+    'AND created >= -90d',
+    'ORDER BY created DESC'
   ].join(' ');
 
-  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks';
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks,comment';
   const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
-  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0 });
+  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0, expand: 'changelog' });
   const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
 
   try {
@@ -215,6 +264,12 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
 
     const CLOSED_STATUSES = ['done','invalid',"won't fix",'wont fix','wont do','duplicate','deferred'];
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    // CS team account IDs (Nick Palaszewski + Ubaidur Rahman)
+    const CS_ACCOUNT_IDS = new Set([
+      '712020:3097823e-a9a8-4a91-a242-6cee8c91b020', // Nick Palaszewski
+      '712020:95408ab1-292f-4529-a380-b8d8cb5742a1', // Ubaidur Rahman
+    ]);
 
     const tickets = rawIssues.map(issue => {
       const f = issue.fields || {};
@@ -269,6 +324,47 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
             direction: l.inwardIssue ? 'inward' : 'outward',
           };
         }).filter(Boolean),
+        // Sprint rollovers: full trail from changelog, sorted chronologically
+        ...(() => {
+          const histories = (issue.changelog?.histories || [])
+            .slice()
+            .sort((a, b) => new Date(a.created) - new Date(b.created));
+          const changes = [];
+          for (const h of histories) {
+            for (const item of (h.items || [])) {
+              if (item.field === 'Sprint') {
+                changes.push({ from: item.fromString || null, to: item.toString || null });
+              }
+            }
+          }
+          // A true rollover = moved FROM one sprint TO another (both must be non-null)
+          // Removals (from=sprint, to=null) and initial assignments (from=null, to=sprint) are NOT rollovers
+          const rollovers    = changes.filter(c => c.from && c.to).length;
+          const firstSprint  = changes.find(c => !c.from && c.to)?.to || null;
+          // trail = only entries where ticket was actively placed in a sprint (to is non-null)
+          const allSprints   = changes.filter(c => c.to).map(c => c.to);
+          const sprintTrail  = allSprints.filter((s, i) => i === 0 || s !== allSprints[i - 1]);
+          return { rollovers, firstSprint, sprintTrail };
+        })(),
+        // CS team ETA/update requests: comments from Nick or Ubaidur that ask for an ETA or status
+        csReachouts: (() => {
+          const ETA_RE = /\beta\b|timeline|any update|updates here|please pick|get eyes on|pushing for this|keep getting asked|please share|please confirm|going to be released|go live|when will|blocker|can you please|can we please/i;
+          const comments = f.comment?.comments || [];
+          return comments.filter(c =>
+            CS_ACCOUNT_IDS.has(c.author?.accountId) && ETA_RE.test(adfToText(c.body))
+          ).length;
+        })(),
+        csReachoutBy: (() => {
+          const ETA_RE = /\beta\b|timeline|any update|updates here|please pick|get eyes on|pushing for this|keep getting asked|please share|please confirm|going to be released|go live|when will|blocker|can you please|can we please/i;
+          const comments = f.comment?.comments || [];
+          const names = [...new Set(
+            comments
+              .filter(c => CS_ACCOUNT_IDS.has(c.author?.accountId) && ETA_RE.test(adfToText(c.body)))
+              .map(c => c.author?.displayName || '')
+              .filter(Boolean)
+          )];
+          return names;
+        })(),
       };
     });
 
@@ -319,8 +415,28 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
   }
 });
 
-// ── Ticket gist: AI-generated 2-liner via Claude Haiku ───────────────────────
+// ── Ticket gist: AI-generated 2-liner via Gemini ─────────────────────────────
 const _gistCache = {};
+// Simple throttle: track last Gemini call time to avoid 429s
+let _lastGeminiCall = 0;
+const GEMINI_MIN_GAP_MS = 2500; // max ~24 RPM, safely under 30 RPM free-tier limit
+
+async function throttledGemini(prompt) {
+  const now = Date.now();
+  const wait = GEMINI_MIN_GAP_MS - (now - _lastGeminiCall);
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  _lastGeminiCall = Date.now();
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    }
+  );
+  return res;
+}
 
 function adfToPlainText(node) {
   if (!node) return '';
@@ -347,13 +463,13 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
   const jiraEmail = process.env.JIRA_EMAIL;
   const jiraToken = process.env.JIRA_API_TOKEN;
   if (!jiraEmail || !jiraToken) return res.status(503).json({ error: 'Jira not configured' });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set' });
+  if (!process.env.GEMINI_API_KEY) return res.status(503).json({ error: 'GEMINI_API_KEY not set' });
 
   try {
     // 1. Fetch ticket from Jira
     const auth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
     const r = await fetch(
-      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=summary,description,issuetype,comment`,
+      `https://armorcodeinc.atlassian.net/rest/api/3/issue/${key}?fields=summary,description,issuetype`,
       { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } }
     );
     if (!r.ok) return res.status(r.status).json({ error: `Jira ${r.status}` });
@@ -361,28 +477,27 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
     const summary = (issue.fields?.summary || '').trim();
     const desc    = adfToText(issue.fields?.description).slice(0, 1200);
 
-    // 2. Ask Claude Haiku for a concise 2-liner
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client    = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 120,
-      messages: [{
-        role: 'user',
-        content:
-          `Jira ticket summary: "${summary}"\n` +
-          `Description: ${desc || '(none)'}\n\n` +
-          `Write exactly 2 sentences (max 20 words each) that explain:\n` +
-          `1. What problem or gap this ticket is addressing.\n` +
-          `2. What the desired end result looks like.\n` +
-          `Plain English only. No jargon. No bullet points. No mention of the ticket ID.`
-      }]
-    });
+    // 2. Gemini Flash — layman-terms 2-liner
+    const prompt =
+      `Jira ticket summary: "${summary}"\n` +
+      `Description: ${desc || '(none)'}\n\n` +
+      `Write exactly 2 sentences (max 20 words each):\n` +
+      `1. What problem this ticket is fixing, in plain English.\n` +
+      `2. What the end result will look like once done.\n` +
+      `No jargon. No bullet points. No ticket ID mentions.`;
 
-    const gist   = (msg.content[0]?.text || '').trim();
+    const gRes = await throttledGemini(prompt);
+    if (!gRes.ok) {
+      const errText = await gRes.text().catch(() => '');
+      console.error('Gemini error:', gRes.status, errText.slice(0, 200));
+      // 429: don't cache — client should retry
+      if (gRes.status === 429) return res.status(429).json({ error: 'Rate limited — hover again in a moment' });
+      return res.status(502).json({ error: `Gemini returned ${gRes.status}` });
+    }
+    const gData  = await gRes.json();
+    const gist   = (gData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
     const lines  = gist.split(/\n+/).map(l => l.trim()).filter(Boolean);
     const result = { line1: lines[0] || summary, line2: lines[1] || '' };
-
     _gistCache[key] = result;
     res.json(result);
   } catch (err) {
@@ -576,7 +691,31 @@ app.get('/api/debug', requireAuth, async (req, res) => {
 });
 
 app.get('/', requireAuth, (req, res) => {
+  // Fire-and-forget visit log — don't block the page load
+  logVisit(req.user).catch(() => {});
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ── Visitor stats ─────────────────────────────────────────────────────────────
+app.get('/api/visits', requireAuth, async (req, res) => {
+  const rows = await getVisits();
+  if (!rows) return res.json({ enabled: false });
+
+  // rows: [timestamp, name, email, page]
+  const byEmail = {};
+  for (const [ts, name, email] of rows) {
+    if (!email) continue;
+    if (!byEmail[email]) byEmail[email] = { name, email, count: 0, lastSeen: ts };
+    byEmail[email].count++;
+    if (ts > byEmail[email].lastSeen) byEmail[email].lastSeen = ts;
+  }
+  const visitors = Object.values(byEmail).sort((a, b) => b.count - a.count);
+  res.json({
+    enabled:      true,
+    totalVisits:  rows.length,
+    uniqueVisitors: visitors.length,
+    visitors,
+  });
 });
 
 app.use(requireAuth, express.static(path.join(__dirname, 'public')));
