@@ -226,7 +226,7 @@ CUSTOMERS.forEach(c => {
     <div class="tile-stats" id="stats-${c.id}">
       <div class="stat-chip"><div class="num" style="color:${c.primary}" id="open-${c.id}"><span class="mini-spinner"></span></div><div class="lbl">Open</div></div>
       <div class="stat-chip"><div class="num" style="color:#ff4d6d" id="bugs-${c.id}">—</div><div class="lbl">Bugs</div></div>
-      <div class="stat-chip"><div class="num" style="color:#ff9f43" id="unassigned-${c.id}">—</div><div class="lbl">Unassigned</div></div>
+      <div class="stat-chip"><div class="num" style="color:#6c63ff" id="eng-${c.id}">—</div><div class="lbl">ENG Active</div></div>
     </div>
     <div class="tile-footer">
       <div class="slack-channels">${slackHtml}</div>
@@ -244,26 +244,35 @@ CUSTOMERS.forEach(c => {
       const tickets = data.tickets || [];
       const open = tickets.length;
       const bugs = tickets.filter(t => (t.type||'').toLowerCase() === 'bug').length;
-      const unassigned = tickets.filter(t => !t.assignee).length;
+      const engActive = tickets.filter(t => (t.key||'').startsWith('ENG-')).length;
       const urgentBugs = tickets.filter(t => (t.type||'').toLowerCase() === 'bug' && ['urgent','highest'].includes((t.priority||'').toLowerCase())).length;
       const overdueCount = tickets.filter(t => { const d = t.duedate||t.eta; return d && new Date(d) < new Date(); }).length;
 
       document.getElementById('open-' + c.id).textContent = open;
       document.getElementById('bugs-' + c.id).textContent = bugs;
-      document.getElementById('unassigned-' + c.id).textContent = unassigned;
+      document.getElementById('eng-' + c.id).textContent = engActive;
 
-      // Health: AT RISK if urgent bugs ≥ 2 or overdue ≥ 3; NEEDS ATTENTION if bugs > 0 or unassigned > 3; else HEALTHY
+      // Health: AT RISK if any urgent bug or ≥3 overdue; NEEDS ATTENTION if any bug or high ENG load; else HEALTHY
       const healthEl = document.getElementById('health-' + c.id);
       let healthClass, healthLabel;
-      if (urgentBugs >= 2 || overdueCount >= 3) {
+      if (urgentBugs >= 1 || overdueCount >= 3) {
         healthClass = 'health-risk'; healthLabel = 'AT RISK';
-      } else if (bugs > 0 || unassigned > 3) {
+      } else if (bugs > 0 || engActive > 5) {
         healthClass = 'health-attention'; healthLabel = 'NEEDS ATTENTION';
       } else {
         healthClass = 'health-healthy'; healthLabel = 'HEALTHY';
       }
       healthEl.className = 'health-badge ' + healthClass;
       healthEl.innerHTML = `<span class="health-dot"></span>${healthLabel}`;
+
+      // Alert glow on tiles with active bugs (red) or active ENG tickets (purple)
+      if (bugs > 0 || engActive > 0) {
+        const tileEl = document.querySelector(`a[href="/${c.id}"]`);
+        if (tileEl) {
+          const glowColor = bugs > 0 ? 'rgba(255,77,109,0.20)' : 'rgba(108,99,255,0.18)';
+          tileEl.style.boxShadow = `0 0 0 1px ${glowColor}, inset 0 0 24px ${glowColor}`;
+        }
+      }
     })
     .catch(() => {
       document.getElementById('open-' + c.id).textContent = '—';

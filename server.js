@@ -336,7 +336,7 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
     'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
     'AND project IN (ENG, PROD, DEVOPS, SENTRY, Doc)',
     'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
-    'AND created >= -90d',
+    'AND created >= -365d',
     'ORDER BY created DESC'
   ].join(' ');
 
@@ -475,8 +475,20 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
       };
     });
 
-    console.log('[Jira] mapped tickets:', tickets.length, '| first key:', tickets[0]?.key || 'none');
-    res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
+    // Filter out PROD tickets that have no customer engagement AND aren't actively being worked on
+    const ACTIVE_WORKING = new Set([
+      'in progress','in review','in development','with engineering','in qa',
+      'code review','testing','ready for release','under review','in progress - waiting for customer',
+    ]);
+    const filtered = tickets.filter(t => {
+      if (!t.key.startsWith('PROD-')) return true;
+      const isActive = ACTIVE_WORKING.has((t.status || '').toLowerCase());
+      const hasCustomerPush = (t.csReachouts || 0) > 0;
+      return isActive || hasCustomerPush;
+    });
+
+    console.log('[Jira] mapped tickets:', tickets.length, '| after PROD filter:', filtered.length, '| first key:', filtered[0]?.key || 'none');
+    res.json({ tickets: filtered, total: data.total, fetched: filtered.length, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Jira proxy error:', err);
     res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
@@ -498,7 +510,7 @@ app.get('/api/tickets/:customer', requireAuth, async (req, res) => {
     cfg.jqlLabels,
     'AND project IN (ENG, PROD)',
     'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
-    'AND created >= -90d',
+    'AND created >= -365d',
     'ORDER BY created DESC'
   ].join(' ');
 
@@ -571,7 +583,17 @@ app.get('/api/tickets/:customer', requireAuth, async (req, res) => {
       };
     });
 
-    res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
+    // Filter out PROD tickets with no customer push and not actively being worked on
+    const ACTIVE_WORKING = new Set([
+      'in progress','in review','in development','with engineering','in qa',
+      'code review','testing','ready for release','under review','in progress - waiting for customer',
+    ]);
+    const filtered = tickets.filter(t => {
+      if (!t.key.startsWith('PROD-')) return true;
+      return ACTIVE_WORKING.has((t.status || '').toLowerCase());
+    });
+
+    res.json({ tickets: filtered, total: data.total, fetched: filtered.length, fetchedAt: new Date().toISOString() });
   } catch (err) {
     res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
   }

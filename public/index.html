@@ -1644,6 +1644,14 @@ function renderSection(sec, tickets, isBug) {
     // data attrs for filter/sort + action button
     const dataAttrs = `data-type="${sectionKey(t.type) === 'bugs' ? 'Bug' : sectionKey(t.type) === 'tasks' ? 'Task' : 'Story'}" data-priority="${escHtml(t.priority||'')}" data-assignee="${escHtml(t.assignee||'unassigned')}" data-id="${escHtml(t.id||'')}" data-key="${escHtml(t.key)}" data-summary="${escHtml(t.summary)}" data-eta="${escHtml(eta||'')}"`;
 
+    // Highlight ENG-project tickets with left accent border; bugs already have isBug styling
+    const isEngRow = t.key.startsWith('ENG-');
+    const rowStyle = isBug
+      ? ' style="border-left:3px solid rgba(255,77,109,0.7);background:rgba(255,77,109,0.04)"'
+      : isEngRow
+        ? ' style="border-left:3px solid rgba(108,99,255,0.7);background:rgba(108,99,255,0.04)"'
+        : '';
+
     // CS follow-up cell
     const csCount = t.csReachouts || 0;
     const csWho   = (t.csReachoutBy || []).join(' + ') || '';
@@ -1676,7 +1684,7 @@ function renderSection(sec, tickets, isBug) {
       cells += `<td style="font-size:11px;color:var(--muted)">${updDisp}</td>`;
     }
 
-    return `<tr ${dataAttrs}>${cells}</tr>`;
+    return `<tr ${dataAttrs}${rowStyle}>${cells}</tr>`;
   }).join('');
 }
 
