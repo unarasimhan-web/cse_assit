@@ -992,175 +992,23 @@
         <span id="slack-toggle-icon" style="font-size:13px;color:var(--muted);margin-left:8px">▲</span>
       </div>
 
-      <!-- LOOSE ENDS BANNER -->
-      <div id="slack-loose-ends" style="margin:10px 0 16px;padding:12px 16px;background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.3);border-radius:8px;">
+      <!-- LOOSE ENDS — dynamically populated by loadSlack() -->
+      <div id="slack-loose-ends" style="display:none;margin:10px 0 16px;padding:12px 16px;background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.3);border-radius:8px;">
         <div style="font-size:13px;font-weight:700;color:#ef5350;margin-bottom:8px;">⚠️ Needs Attention / Loose Ends</div>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;line-height:1.6;">
-          <div>🔴 <strong>EMU Repos Missing Tags (Ticket 1516494)</strong> — 920+ OnePayPal repos have no <code>armorcode.repo.property.*</code> tags. Customer explicitly marking urgent. Needs ETA + regular update cadence.</div>
-          <div>🔴 <strong>Wiz Runbooks → Prod?</strong> — Sandeep (PayPal) asked Priyansh for prod readiness + benchmarking confirmation. No response visible yet.</div>
-          <div>🟡 <strong>Customer Call: ENG-118446 Fix Review</strong> — PayPal wants an on-call review with Prabhas. Prabhas said he'd "get back" — follow-through needed.</div>
-          <div>🟡 <strong>4 Tickets Awaiting Updates</strong> — Lyden asked for updates on <a href="https://support.armorcode.com/hc/en-us/requests/1515943" target="_blank">1515943</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515969" target="_blank">1515969</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">1515502</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515057" target="_blank">1515057</a>. Hari to check internally — no confirmation visible.</div>
-          <div>🟡 <strong>Container Security Priorities</strong> — Customer listed 5 items for next call: RCE T/F, DoS T/F, Mitigation→Remediation, AC Connect, Ownership Correlation. Confirm owners + ETAs.</div>
-          <div>🟡 <strong>ENG-120209: Ownership &amp; Custom Attributes as Tags</strong> — Nick flagged tags missing for group/subgroupings. No assignee response visible.</div>
-          <div>🟡 <strong>JIRA Dev Questions / AC-Connect (Ticket 1515502)</strong> — Lyden's questions on default views. Ankit asked CS to reply in ext-paypal channel — pending.</div>
-          <div>🟡 <strong>AIEM + SBOM Strategy</strong> — Eric waiting on AIEM next steps from Prabhas. SBOM owner with PayPal not confirmed.</div>
-          <div>🟡 <strong>Old→New Mapping Suspension</strong> — Customer approval to suspend existing CrowdStrike mapping still pending.</div>
-          <div>✅ <strong>SLA Finding 90% (ENG-124462)</strong> — Resolved &amp; communicated. Monitor fix rollout.</div>
-        </div>
+        <div id="slack-loose-ends-body" style="display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.6;"></div>
       </div>
 
       <div id="slack-body">
         <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;">
-          <button class="slack-tab slack-tab-active" onclick="switchSlackTab('internal',this)">🔒 Internal Channels</button>
-          <button class="slack-tab" onclick="switchSlackTab('external',this)">🌐 External Channel</button>
+          <button class="slack-tab slack-tab-active" id="slack-tab-internal" onclick="switchSlackTab('internal',this)">🔒 Internal</button>
+          <button class="slack-tab" id="slack-tab-external" onclick="switchSlackTab('external',this)">🌐 External</button>
         </div>
-
-        <!-- INTERNAL PANEL -->
         <div id="slack-panel-internal" class="slack-panel">
-          <div style="font-size:11px;color:var(--muted);margin:8px 0 12px;font-style:italic">#internal-paypal &nbsp;·&nbsp; #paypal-prep</div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#internal-paypal</span><span class="sdt">Jun 3 – May 27</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">AIEM &amp; SBOM Strategy with PayPal</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Eric Breuninger</b><span class="sts">Jun 3</span> Where are we with AIEM with PayPal? What are next steps &amp; who to follow up with?</div>
-              <div class="smsg"><b>Nikhil G</b><span class="sts">May 27</span> I'm driving AIEM discussions. Check with PayPal CSM &amp; Mark Lambert on who's pushing SBOM.</div>
-              <div class="smsg"><b>Nikhil G</b><span class="sts">May 27</span> @Shri — has the CSM team talked about SBOM with PayPal?</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ No confirmed owner for SBOM; AIEM next steps unresolved.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 4</span><span class="stag stag-info">In Progress</span></div>
-            <div class="stitle">CrowdStrike Container Security — ENG-118446 Polling Timeout Fix</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Tarun Singh Yadav</b><span class="sts">Jun 4 13:23</span> New mapping: CrowdStrike Falcon → Container Security. Report generation exceeds current polling timeout (not configurable). Fix to increase &amp; make configurable — delivery tomorrow.</div>
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:23</span> Customer informed. Fix flushed out tomorrow?</div>
-              <div class="smsg"><b>Tarun Singh Yadav</b><span class="sts">Jun 4 13:25</span> Yes.</div>
-            </div>
-            <div class="sflag sflag-info">🔵 Fix ETA: Jun 5. Monitor delivery &amp; verify with customer.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 3–4</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">Old vs New Mapping Differentiation (ENG-118446)</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Bhumita Vasoya</b><span class="sts">Jun 3</span> Release deployed. Internal verification underway. Will suspend old mapping if successful. <strong>Need customer approval to suspend.</strong></div>
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 3</span> PayPal asks: Can they differentiate between old &amp; new mapping data?</div>
-              <div class="smsg"><b>Bhumita Vasoya</b><span class="sts">Jun 4</span> Old sub-group = "CrowdStrike Falcon Container Security". New = "Container Security".</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ Customer approval to suspend old mapping still pending.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 3–4</span><span class="stag stag-urgent">🔴 Action Required</span></div>
-            <div class="stitle">Customer Call: ENG-118446 Fix Review + Wiz</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Md Ubaidur Rahman</b><span class="sts">Jun 3</span> Customer wants to review fix on-call with Prabhas to confirm requirements met. Also needs Prabhas for Wiz.</div>
-              <div class="smsg"><b>Prabhas Gupte</b><span class="sts">Jun 4</span> Difficult to join. Reviewing ticket now — not flagged earlier, lacks background. Will get back.</div>
-            </div>
-            <div class="sflag sflag-urgent">🔴 Prabhas availability unconfirmed. Customer call not yet scheduled.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 4</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">Runbook Best Practices &amp; Benchmarking Evaluation</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Ankit Singhal</b><span class="sts">Jun 4 05:16</span> @Priyansh — share runbook evaluation steps again for CS team.</div>
-              <div class="smsg"><b>Priyansh Sharma</b><span class="sts">Jun 4 06:28</span> Usually stuck at points 4 &amp; 5. <a href="https://armorcodeinc.atlassian.net/wiki/spaces/EN/pages/2469920791" target="_blank">Best Practices</a> · <a href="https://armorcodeinc.atlassian.net/wiki/spaces/EN/pages/2526675031" target="_blank">Benchmarking Guide</a>. Wiz benchmarking may not be possible — no runbook executions.</div>
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:44</span> I have time later today — should be able to get some info.</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ Nick to follow up today. Wiz benchmarking blocker needs clarification.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">Jun 2–3</span><span class="stag stag-ok">✅ Resolved</span></div>
-            <div class="stitle">SLA % Bug — Finding 11214199877 (ENG-124462)</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 2</span> Why is SLA % showing 90.0 for this finding? Customer flagged in PayPal channel.</div>
-              <div class="smsg"><b>Ganesh KVKS</b><span class="sts">Jun 2</span> Initial % was 89.997 — rounded to 90.0 in tag. Further executions fell to ~86 but custom field didn't update (groovy flow ignores tag updates). Created <a href="https://armorcodeinc.atlassian.net/browse/ENG-124462" target="_blank">ENG-124462</a>. Recalculated every 6 hrs; counts only in impact field.</div>
-            </div>
-            <div class="sflag sflag-info">🔵 ENG-124462 created. Customer informed. Monitor fix rollout.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#paypal-prep</span><span class="sdt">May 29 – Jun 4</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">JIRA Dev Questions &amp; ENG-120209 (Ownership/Custom Attrs as Tags)</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">May 29</span> Lyden's questions on AC-Connect: 1) Default view for teams. 2) Default view per vertical (infra/container/app-sec). <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">Ticket 1515502</a>.</div>
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">May 29</span> <a href="https://armorcodeinc.atlassian.net/browse/ENG-120209" target="_blank">ENG-120209</a> — ownership &amp; custom attributes not appearing as tags for group/subgroupings.</div>
-              <div class="smsg"><b>Ankit Singhal</b><span class="sts">Jun 4</span> @Nick — can someone from CS reply in ext-paypal?</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ CS reply to ext-paypal thread pending. ENG-120209 ownership tags unresolved.</div>
-          </div>
-
-        </div><!-- /slack-panel-internal -->
-
-        <!-- EXTERNAL PANEL -->
+          <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">Loading…</div>
+        </div>
         <div id="slack-panel-external" class="slack-panel" style="display:none">
-          <div style="font-size:11px;color:var(--muted);margin:8px 0 12px;font-style:italic">#ext-paypal-armorcode</div>
-
-          <div class="slack-thread" style="border-left-color:#ef5350;">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 4</span><span class="stag stag-urgent">🔴 Urgent</span></div>
-            <div class="stitle">EMU Repos Missing Tags — <a href="https://support.armorcode.com/hc/en-us/requests/1516494" target="_blank">Ticket 1516494</a></div>
-            <div class="smsgs">
-              <div class="smsg"><b>sjalal (PayPal)</b><span class="sts">Jun 4 10:14</span> 920+ EMU repos in OnePayPal/ org have no <code>armorcode.repo.property.*</code> tags despite GitHub custom properties set. Impact: broken high-risk classification, prioritization &amp; SLA logic.</div>
-              <div class="smsg"><b>Jagjot Singh</b><span class="sts">Jun 4 12:00</span> Raised with Engg team — will keep posted.</div>
-              <div class="smsg"><b>ktoprani (PayPal)</b><span class="sts">Jun 4 13:39</span> <strong>Urgent priority — please provide regular updates.</strong></div>
-              <div class="smsg"><b>Nick Palaszewski</b><span class="sts">Jun 4 13:40</span> With internal engineering team.</div>
-            </div>
-            <div class="sflag sflag-urgent">🔴 920+ repos affected. Customer escalating. Needs ETA + regular comms cadence established.</div>
-          </div>
-
-          <div class="slack-thread" style="border-left-color:#ef5350;">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 4</span><span class="stag stag-urgent">🔴 Urgent</span></div>
-            <div class="stitle">Wiz Runbooks — Production Readiness &amp; Benchmarking</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Sandeep Sivanandan (PayPal)</b><span class="sts">Jun 4 04:12</span> Checking on Wiz runbooks — ready for Prod? What about performance benchmarking?</div>
-            </div>
-            <div class="sflag sflag-urgent">🔴 No response from Priyansh yet. Customer waiting on confirmation.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 3</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">Container Security Priorities (Next Call with Prabhas)</div>
-            <div class="smsgs">
-              <div class="smsg"><b>jgomezangulo (PayPal)</b><span class="sts">Jun 3 16:55</span> Priorities highlighted: RCE True/False, DoS True/False, Mitigation→Remediation Action, AC Connect, Ownership Correlation.</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ 5 items from customer. Confirm each has an owner &amp; ETA before next call.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 3</span><span class="stag stag-warn">Needs Follow-up</span></div>
-            <div class="stitle">General Ticket Update Request — Lyden</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">Jun 3 15:54</span> Requesting updates on: <a href="https://support.armorcode.com/hc/en-us/requests/1515943" target="_blank">1515943</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515969" target="_blank">1515969</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515502" target="_blank">1515502</a>, <a href="https://support.armorcode.com/hc/en-us/requests/1515057" target="_blank">1515057</a>.</div>
-              <div class="smsg"><b>Hari Rama Krishna</b><span class="sts">Jun 3 21:28</span> I will check internally and provide updates.</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ Hari to update — no confirmation yet visible.</div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">Jun 1–3</span><span class="stag stag-ok">✅ Resolved</span></div>
-            <div class="stitle">SLA Finding Status — 90% Finding</div>
-            <div class="smsgs">
-              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">Jun 1</span> Findings at 90% shouldn't be open — why is this one?</div>
-              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 2</span> Engineering team on it. ETA tomorrow.</div>
-              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">Jun 3</span> Resolved — please take a look.</div>
-            </div>
-          </div>
-
-          <div class="slack-thread">
-            <div class="sth"><span class="sch">#ext-paypal-armorcode</span><span class="sdt">May 29</span><span class="stag stag-info">In Progress</span></div>
-            <div class="stitle">Ownership Correlation Issue — <a href="https://support.armorcode.com/hc/en-us/requests/1516336" target="_blank">Ticket 1516336</a></div>
-            <div class="smsgs">
-              <div class="smsg"><b>Lyden (PayPal)</b><span class="sts">May 29</span> Here is the ticket for ownership correlation issue.</div>
-              <div class="smsg"><b>Uma Somi Narasimhan</b><span class="sts">May 29</span> Sure, thanks!</div>
-            </div>
-            <div class="sflag sflag-warn">⚠️ Open ticket — track resolution progress.</div>
-          </div>
-
-        </div><!-- /slack-panel-external -->
+          <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">Loading…</div>
+        </div>
       </div><!-- /slack-body -->
     </div><!-- /section-slack -->
 
@@ -2663,13 +2511,164 @@ function toggleSlack() {
   }
 }
 
-// ── Slack section dynamic date range ──────────────────────────────────────
-(function() {
-  var to   = new Date();
-  var from = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
-  var fmt  = function(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
-  var el   = document.getElementById('slack-date-range');
-  if (el) el.textContent = '(last 10 days · ' + fmt(from) + ' – ' + fmt(to) + ')';
+// ── Live Slack feed — thread-card renderer ─────────────────────────────────
+(function loadSlack() {
+  var customerId = (window.CUSTOMER_CONFIG && window.CUSTOMER_CONFIG.id) || 'paypal';
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function stripHtml(html) {
+    return html.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').trim();
+  }
+
+  function extractTitle(html) {
+    var plain = stripHtml(html);
+    var first = plain.split('\n')[0].trim();
+    return first.length > 90 ? first.substring(0, 90) + '…' : (first || '(no text)');
+  }
+
+  function autoTag(plain) {
+    var lo = plain.toLowerCase();
+    if (/\burgent\b|critical|blocking|asap|escalat|\bp0\b|\bp1\b|flagging|phase \d+ .*block|does not|not able|failed/.test(lo))
+      return { cls: 'stag-urgent', label: '🔴 Urgent' };
+    if (/resolv|fixed|done|thank|closed|it is fixed|confirmed|completed/.test(lo))
+      return { cls: 'stag-ok',     label: '✅ Resolved' };
+    if (/in progress|working on|deployed|investigating|solution|progress|created.*ticket|update.*below|updates:/.test(lo))
+      return { cls: 'stag-info',   label: 'In Progress' };
+    return   { cls: 'stag-warn',   label: 'Needs Follow-up' };
+  }
+
+  function borderColor(tagCls) {
+    if (tagCls === 'stag-urgent') return '#ef5350';
+    if (tagCls === 'stag-ok')     return '#4caf50';
+    if (tagCls === 'stag-info')   return '#2196f3';
+    return '#ff9800';
+  }
+
+  function renderThreadCard(msg, channelName) {
+    var plain = stripHtml(msg.html || '');
+    var tag   = autoTag(plain);
+    var date  = new Date(msg.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    var title = extractTitle(msg.html || '');
+    var replyBadge = msg.replyCount > 0
+      ? '<span style="font-size:10px;color:var(--accent);margin-left:6px">↩ ' + msg.replyCount + ' repl' + (msg.replyCount === 1 ? 'y' : 'ies') + '</span>'
+      : '';
+
+    var flagHtml = '';
+    if (tag.cls === 'stag-urgent')
+      flagHtml = '<div class="sflag sflag-urgent">🔴 Customer flagging urgency — action needed.</div>';
+    else if (tag.cls === 'stag-ok')
+      flagHtml = '<div class="sflag sflag-info">🔵 Resolved/acknowledged. Monitor for follow-through.</div>';
+    else if (msg.replyCount > 0)
+      flagHtml = '<div class="sflag sflag-warn">⚠️ ' + msg.replyCount + ' repl' + (msg.replyCount === 1 ? 'y' : 'ies') + ' in thread — verify resolution.</div>';
+
+    return '<div class="slack-thread" style="border-left-color:' + borderColor(tag.cls) + '">' +
+      '<div class="sth">' +
+        '<span class="sch">#' + esc(channelName) + '</span>' +
+        '<span class="sdt">' + date + '</span>' +
+        '<span class="stag ' + tag.cls + '">' + tag.label + '</span>' +
+        replyBadge +
+      '</div>' +
+      '<div class="stitle">' + title + '</div>' +
+      '<div class="smsgs"><div class="smsg">' +
+        '<b>' + esc(msg.user) + '</b>' +
+        '<span class="sts">' + esc(msg.label) + '</span>' +
+        '<span style="color:var(--muted);font-size:12px;line-height:1.5;flex:1">' + msg.html + '</span>' +
+      '</div></div>' +
+      flagHtml +
+    '</div>';
+  }
+
+  fetch('/api/slack/' + customerId)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Update header date range
+      var rangeEl = document.getElementById('slack-date-range');
+      if (rangeEl && data.from && data.to) {
+        rangeEl.textContent = '(last 10 days · ' + data.from + ' – ' + data.to + ')';
+      }
+
+      var internalChannels = (data.channels || []).filter(function(c) { return !c.isExternal; });
+      var externalChannels = (data.channels || []).filter(function(c) { return  c.isExternal; });
+
+      var totalInt = internalChannels.reduce(function(a,c){ return a + (c.messages||[]).length; }, 0);
+      var totalExt = externalChannels.reduce(function(a,c){ return a + (c.messages||[]).length; }, 0);
+      var tabInt = document.getElementById('slack-tab-internal');
+      var tabExt = document.getElementById('slack-tab-external');
+      if (tabInt) tabInt.textContent = '🔒 Internal' + (totalInt ? ' (' + totalInt + ')' : '');
+      if (tabExt) tabExt.textContent = '🌐 External' + (totalExt ? ' (' + totalExt + ')' : '');
+
+      // Render internal panel
+      var intEl = document.getElementById('slack-panel-internal');
+      if (intEl) {
+        var intHtml = '';
+        internalChannels.forEach(function(ch) {
+          if (ch.error) {
+            intHtml += '<div style="color:var(--red);font-size:12px;margin:8px 0">⚠ #' + esc(ch.name) + ': ' + esc(ch.error) + '</div>';
+          } else if (!ch.messages || !ch.messages.length) {
+            intHtml += '<div style="color:var(--muted);font-size:12px;margin:8px 0">#' + esc(ch.name) + ': No messages in this window.</div>';
+          } else {
+            // Only root messages (thread_ts === ts or standalone)
+            ch.messages.forEach(function(m) {
+              if (!m.threadTs || m.threadTs === m.tsRaw) {
+                intHtml += renderThreadCard(m, ch.name);
+              }
+            });
+          }
+        });
+        intEl.innerHTML = intHtml || '<div style="color:var(--muted);font-size:12px;padding:12px 0">No internal channel messages in the last 10 days.</div>';
+      }
+
+      // Render external panel
+      var extEl = document.getElementById('slack-panel-external');
+      if (extEl) {
+        var extHtml = '';
+        externalChannels.forEach(function(ch) {
+          if (ch.error) {
+            extHtml += '<div style="color:var(--red);font-size:12px;margin:8px 0">⚠ #' + esc(ch.name) + ': ' + esc(ch.error) + '</div>';
+          } else if (!ch.messages || !ch.messages.length) {
+            extHtml += '<div style="color:var(--muted);font-size:12px;margin:8px 0">#' + esc(ch.name) + ': No messages in this window.</div>';
+          } else {
+            ch.messages.forEach(function(m) {
+              if (!m.threadTs || m.threadTs === m.tsRaw) {
+                extHtml += renderThreadCard(m, ch.name);
+              }
+            });
+          }
+        });
+        extEl.innerHTML = extHtml || '<div style="color:var(--muted);font-size:12px;padding:12px 0">No external channel messages in the last 10 days.</div>';
+      }
+
+      // Build loose-ends from urgent messages across all channels
+      var looseItems = [];
+      (data.channels || []).forEach(function(ch) {
+        (ch.messages || []).forEach(function(m) {
+          var plain = stripHtml(m.html || '');
+          var tag = autoTag(plain);
+          if (tag.cls === 'stag-urgent') {
+            var title = extractTitle(m.html || '');
+            var date  = new Date(m.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            looseItems.push('🔴 <strong>' + date + ' · ' + esc(m.user) + '</strong> — ' + esc(title));
+          }
+        });
+      });
+      var looseEl = document.getElementById('slack-loose-ends');
+      var looseBody = document.getElementById('slack-loose-ends-body');
+      if (looseEl && looseBody && looseItems.length) {
+        looseBody.innerHTML = looseItems.map(function(t){ return '<div>' + t + '</div>'; }).join('');
+        looseEl.style.display = '';
+      }
+    })
+    .catch(function(err) {
+      var msg = '<div style="color:var(--red);font-size:12px;padding:12px 0">⚠ Could not load Slack data. ' +
+        'Ensure <code>SLACK_BOT_TOKEN</code> is set on Cloud Run.<br>Error: ' + esc(String(err)) + '</div>';
+      var i = document.getElementById('slack-panel-internal');
+      var e = document.getElementById('slack-panel-external');
+      if (i) i.innerHTML = msg;
+      if (e) e.innerHTML = msg;
+    });
 })();
 function switchSlackTab(which, btn) {
   document.getElementById('slack-panel-internal').style.display = (which==='internal') ? '' : 'none';

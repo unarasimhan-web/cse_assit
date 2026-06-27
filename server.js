@@ -919,14 +919,18 @@ app.get('/api/slack/:customer', requireAuth, async (req, res) => {
       if (msg.subtype && !['bot_message', 'thread_broadcast'].includes(msg.subtype)) continue;
       const user = await resolveUserName(msg.user || msg.bot_id);
       const d = new Date(parseFloat(msg.ts) * 1000);
+      const plainText = (msg.text || '').replace(/<[^>]+>/g, '').trim().slice(0, 200);
       messages.push({
         user,
-        html: slackMrkdwnToHtml((msg.text || '').slice(0, 600)),
-        ts:    d.toISOString(),
-        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
-               d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-        replyCount: msg.reply_count || 0,
-        isExternal: channelName.startsWith('ext-'),
+        html:      slackMrkdwnToHtml((msg.text || '').slice(0, 800)),
+        plainText,
+        ts:        d.toISOString(),
+        tsRaw:     msg.ts,
+        threadTs:  msg.thread_ts || msg.ts,
+        label:     d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+                   d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        replyCount:  msg.reply_count || 0,
+        isExternal:  channelName.startsWith('ext-'),
       });
     }
     messages.reverse(); // show oldest first
