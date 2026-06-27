@@ -1185,10 +1185,8 @@ function sectionKey(type) {
 // ═══════════════════════════════════════════════════════════════
 // CURRENT USER (for comment sign-off)
 // ═══════════════════════════════════════════════════════════════
+// _userName is set by the single /api/me fetch in the USER INFO block below.
 let _userName = '';
-fetch('/api/me').then(r => r.ok ? r.json() : null).then(u => {
-  if (u && u.name) _userName = u.name.split(' ')[0]; // first name only
-}).catch(() => {});
 
 // ═══════════════════════════════════════════════════════════════
 // DATA LOADING
@@ -1940,10 +1938,13 @@ function filterStat(type, card, event) {
   document.querySelector('.filters').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+let _searchDebounce = null;
 function searchTickets(val) {
   currentSearch = val.toLowerCase();
   Object.keys(sectionPages).forEach(k => sectionPages[k] = 1);
-  applyFilters();
+  // Debounce: avoid re-filtering/re-paginating every keystroke
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(applyFilters, 150);
 }
 
 function applyFilters() {
@@ -2025,10 +2026,12 @@ function applyPagination() {
     const page = sectionPages[sec];
     const start = (page - 1) * PAGE_SIZE;
     const end   = start + PAGE_SIZE;
+    // Precompute each filtered row's index once (O(n)) instead of indexOf in a loop (O(n²))
+    const filteredIdx = new Map(filtered.map((r, i) => [r, i]));
     allRows.forEach(row => {
       if (row.classList.contains('child-row')) return;
       if (row.dataset.filtered !== 'true') { row.style.display = 'none'; return; }
-      const idx = filtered.indexOf(row);
+      const idx = filteredIdx.get(row);
       row.style.display = (idx >= start && idx < end) ? '' : 'none';
     });
     section.style.display = filtered.length === 0 ? 'none' : '';
@@ -2128,6 +2131,7 @@ function showToast(msg, type) {
 // ═══════════════════════════════════════════════════════════════
 fetch('/api/me').then(r => r.json()).then(u => {
   if (u && u.name) {
+    _userName = u.name.split(' ')[0]; // first name only, for comment sign-off
     document.getElementById('user-name').textContent = u.name;
     document.getElementById('user-email').textContent = u.email || '';
     if (u.photo) {
@@ -2339,7 +2343,7 @@ function sortSection(th) {
         clearTimeout(clientTimeout);
         if (r.ok) return r.json();
         return r.json().catch(function() { return {}; }).then(function(body) {
-          return Promise.reject({ status: r.status, msg: body.error || ('HTTP ' + r.status) });
+          return Promise.reject({ status: r.status, msg: body.error || ('HTTP ' + r.status), retryAfterMs: body.retryAfterMs || 7000 });
         });
       })
       .then(function(d) {
@@ -2351,15 +2355,23 @@ function sortSection(th) {
         clearTimeout(clientTimeout);
         activeAbort = null;
         if (err && err.name === 'AbortError') {
-          // Aborted — either timeout or mouse-leave. Don't cache; re-hover will retry.
+          // Aborted by mouseout or timeout — don't cache; re-hover retries fresh
           if (activeEl === el) showMsg(key, '⏳ Timed out — hover again to retry', '');
           return;
         }
         var status = err && err.status;
         var detail = err && err.msg ? err.msg : String(err);
+        var retryMs = (err && err.retryAfterMs) ? err.retryAfterMs : 7000;
         if (status === 429) {
-          // Don't cache — allow re-hover to retry
-          if (activeEl === el) showMsg(key, '⏳ Rate limited', 'Hover again in a moment');
+          // Auto-retry: show countdown, fire again automatically
+          var sec = Math.ceil(retryMs / 1000);
+          function tick() {
+            if (activeEl === el) showMsg(key, '⏳ Rate limited — retrying in ' + sec + 's…', '');
+            if (sec <= 0) { load(key, el); return; }
+            sec--;
+            setTimeout(tick, 1000);
+          }
+          tick();
         } else {
           cache[key] = { line1: '⚠ ' + detail, line2: 'Check GEMINI_API_KEY env var' };
           if (activeEl === el) render('⚠ ' + detail, 'Check GEMINI_API_KEY env var', key);

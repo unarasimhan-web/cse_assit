@@ -66,48 +66,29 @@
     .header-right { display: flex; align-items: center; gap: 16px; }
     .user-info-bar { display: flex; align-items: center; gap: 8px; }
 
-    /* MAIN — two-column layout */
+    /* MAIN */
     main {
-      display: flex;
-      gap: 28px;
       padding: 28px 32px;
       max-width: 1400px;
       margin: 0 auto;
-      align-items: flex-start;
     }
 
-    /* LEFT: profile panel */
-    .profile-panel {
-      flex-shrink: 0;
-      width: 210px;
+    /* Portfolio summary strip (replaces left sidebar) */
+    .portfolio-strip {
+      display: flex;
+      align-items: center;
+      gap: 20px;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px 18px;
-      position: sticky;
-      top: 74px;
+      border-radius: 12px;
+      padding: 12px 20px;
+      margin-bottom: 22px;
     }
-    .profile-avatar {
-      width: 56px; height: 56px; border-radius: 50%;
-      background: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 700; color: #fff;
-      margin: 0 auto 12px;
-      overflow: hidden;
-    }
-    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-    .profile-name { font-size: 14px; font-weight: 700; text-align: center; color: var(--text); }
-    .profile-role { font-size: 11px; color: var(--accent); text-align: center; font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .profile-org  { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2px; }
-    .profile-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
-    .pstat { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; font-size: 12px; }
-    .pstat .pval { font-size: 16px; font-weight: 700; }
-    .pstat .plbl { color: var(--muted); font-size: 11px; }
-    .portfolio-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; font-weight: 600; }
-    .account-count { font-size: 11px; color: var(--muted); text-align: center; }
+    .portfolio-strip .ps-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .portfolio-strip .ps-val { font-size: 18px; font-weight: 700; line-height: 1; }
+    .portfolio-strip .ps-item { text-align: center; }
+    .portfolio-strip .ps-divider { width: 1px; height: 28px; background: var(--border); }
 
-    /* RIGHT: grid */
-    .grid-area { flex: 1; min-width: 0; }
     .page-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .page-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
     .customer-grid {
@@ -253,28 +234,31 @@
 </header>
 
 <main>
-  <!-- LEFT: profile panel -->
-  <aside class="profile-panel">
-    <div class="profile-avatar" id="profile-avatar">US</div>
-    <div class="profile-name" id="profile-name">Uma Somi Narasimhan</div>
-    <div class="profile-role">Customer Success</div>
-    <div class="profile-org">ArmorCode</div>
-    <hr class="profile-divider">
-    <div class="portfolio-label">Portfolio</div>
-    <div class="pstat"><span class="pval" id="total-open">—</span><span class="plbl">Open</span></div>
-    <div class="pstat"><span class="pval" style="color:var(--red)" id="total-bugs">—</span><span class="plbl">Bugs</span></div>
-    <div class="pstat"><span class="pval" style="color:var(--accent)" id="total-eng">—</span><span class="plbl">ENG Active</span></div>
-    <hr class="profile-divider">
-    <div class="account-count">6 accounts managed</div>
-  </aside>
-
-  <!-- RIGHT: customer grid -->
-  <div class="grid-area">
-    <div class="page-title">My Accounts</div>
-    <div class="page-subtitle">Live data from Jira (ENG, PROD) · Click to open dashboard</div>
-    <div class="customer-grid" id="customer-grid">
-      <!-- tiles injected by JS -->
+  <!-- Portfolio summary strip -->
+  <div class="portfolio-strip">
+    <div class="ps-item">
+      <div class="ps-val" id="total-open">—</div>
+      <div class="ps-label">Open</div>
     </div>
+    <div class="ps-divider"></div>
+    <div class="ps-item">
+      <div class="ps-val" style="color:var(--red)" id="total-bugs">—</div>
+      <div class="ps-label">Bugs</div>
+    </div>
+    <div class="ps-divider"></div>
+    <div class="ps-item">
+      <div class="ps-val" style="color:var(--accent)" id="total-eng">—</div>
+      <div class="ps-label">ENG Active</div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="font-size:11px;color:var(--muted)">6 accounts · Live from Jira (ENG, PROD)</div>
+  </div>
+
+  <!-- Customer grid — full width -->
+  <div class="page-title">My Accounts</div>
+  <div class="page-subtitle">Click any account to open its Customer 360 dashboard</div>
+  <div class="customer-grid" id="customer-grid">
+    <!-- tiles injected by JS -->
   </div>
 </main>
 
@@ -307,21 +291,12 @@ function applyTheme(dark) {
 function toggleTheme() { applyTheme(!_isDark); }
 applyTheme(_isDark);
 
-// ── Populate profile panel + header from /api/me ──────────────────────────────
+// ── Populate header user info from /api/me ──────────────────────────────
 fetch('/api/me').then(r => r.json()).then(u => {
-  if (u.name) {
-    document.getElementById('user-name').textContent = u.name;
-    const first = u.name.split(' ')[0];
-    document.getElementById('profile-name').textContent = u.name;
-    // initials fallback
-    const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    document.getElementById('profile-avatar').textContent = initials;
-  }
+  if (u.name) document.getElementById('user-name').textContent = u.name;
   if (u.email) document.getElementById('user-email').textContent = u.email;
   if (u.photo) {
     const img = document.getElementById('user-photo'); img.src = u.photo; img.style.display = 'block';
-    const av = document.getElementById('profile-avatar');
-    av.innerHTML = `<img src="${u.photo}" alt="">`;
   }
 }).catch(() => {});
 

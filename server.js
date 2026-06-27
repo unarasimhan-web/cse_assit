@@ -515,7 +515,8 @@ app.get('/api/tickets/:customer', requireAuth, async (req, res) => {
     'ORDER BY created DESC'
   ].join(' ');
 
-  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks,comment';
+  // NOTE: 'comment' field omitted — this route never reads comments (csReachouts hard-coded to 0)
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks';
   const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
   const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0, expand: 'changelog' });
   const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
@@ -649,8 +650,8 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
 // ── Ticket gist: AI-generated 2-liner via Gemini ─────────────────────────────
 const _gistCache = {};
 let _lastGeminiCall = 0;
-const GEMINI_MIN_GAP_MS = 2000;
-const GEMINI_CALL_TIMEOUT_MS = 6000; // hard 6s timeout per Gemini call
+const GEMINI_MIN_GAP_MS = 3000;      // ~20 RPM ceiling — conservative
+const GEMINI_CALL_TIMEOUT_MS = 8000; // hard 8s timeout per Gemini call
 
 async function callGemini(prompt) {
   // Throttle: enforce minimum gap between calls
@@ -681,12 +682,12 @@ async function callGemini(prompt) {
   }
 }
 
-// 1 retry on 429 with a short delay — fail fast rather than queue for 30s
+// 1 retry on 429 — wait 6s then try once more
 async function callGeminiWithRetry(prompt) {
   const res = await callGemini(prompt);
   if (res.status === 429) {
-    console.warn('[Gemini] 429 — retrying once after 3s');
-    await new Promise(r => setTimeout(r, 3000));
+    console.warn('[Gemini] 429 — retrying once after 6s');
+    await new Promise(r => setTimeout(r, 6000));
     return callGemini(prompt);
   }
   return res;
@@ -744,7 +745,7 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
     if (!gRes.ok) {
       const errText = await gRes.text().catch(() => '');
       console.error('Gemini error:', gRes.status, errText.slice(0, 200));
-      if (gRes.status === 429) return res.status(429).json({ error: 'Gemini rate limit — will auto-retry' });
+      if (gRes.status === 429) return res.status(429).json({ error: 'Rate limited', retryAfterMs: 7000 });
       return res.status(502).json({ error: `Gemini returned ${gRes.status}` });
     }
     const gData  = await gRes.json();
@@ -955,6 +956,7 @@ app.get('/paypal', requireAuth, (req, res) => {
   try {
     const html = buildCustomerPage(CUSTOMER_CONFIGS.paypal);
     res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-cache');
     res.send(html);
   } catch (e) {
     console.error('Error building PayPal page:', e);
@@ -969,9 +971,8 @@ app.get('/:customer', requireAuth, (req, res) => {
   logVisit(req.user).catch(() => {});
   try {
     const html = buildCustomerPage(cfg);
-    // Invalidate cache so next request re-reads index.html (in case it was updated)
-    _indexHtmlCache = null;
     res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-cache');
     res.send(html);
   } catch (e) {
     console.error('Error building customer page for', cfg.id, ':', e);
@@ -1001,7 +1002,17 @@ app.get('/api/visits', requireAuth, async (req, res) => {
   });
 });
 
-app.use(requireAuth, express.static(path.join(__dirname, 'public')));
+app.use(requireAuth, express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  lastModified: true,
+  maxAge: '1h',          // browser may cache static assets up to 1h
+  setHeaders: (res, filePath) => {
+    // HTML should always revalidate so dashboard updates are picked up immediately
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 // ── Start ──────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
