@@ -75,7 +75,7 @@
       white-space: nowrap;
       transition: border-color 0.2s, color 0.2s, background 0.2s;
     }
-    .back-nav[href] { display: inline-flex; } /* show only when href is set */
+    .back-nav[href] { display: inline-flex; margin-left: 8px; } /* show only when href is set */
     .back-nav:hover { border-color: var(--accent); color: var(--text); background: var(--surface); }
     .logo-badge {
       background: var(--accent);
@@ -719,7 +719,6 @@
     <h1>Customer 360</h1>
   </div>
   <div class="header-right">
-    <a id="back-nav-slot" class="back-nav"></a>
     <div class="header-meta">
       Last refreshed: <span id="last-updated">—</span>
       &nbsp;<button class="refresh-btn" onclick="loadTickets()" title="Refresh data from Jira">↻ Refresh</button>
@@ -735,6 +734,7 @@
       </button>
       <a href="/logout" style="margin-left:4px;font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:3px 10px;border-radius:6px;background:var(--surface2)">Logout</a>
     </div>
+    <a id="back-nav-slot" class="back-nav"></a>
   </div>
 </header>
 
