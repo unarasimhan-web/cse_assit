@@ -670,6 +670,49 @@
     .sflag-urgent { background:rgba(239,83,80,.10); color:#ef5350; }
     .sflag-warn   { background:rgba(255,193,7,.10);  color:#ffc107; }
     .sflag-info   { background:rgba(100,181,246,.10);color:#64b5f6; }
+    /* ── Company Overview + News ── */
+    .company-news-row {
+      display: flex; gap: 16px; margin: 20px 32px 0; align-items: flex-start;
+    }
+    .company-overview {
+      flex-shrink: 0; width: 280px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .company-overview .co-name {
+      font-size: 15px; font-weight: 700; color: var(--pp-blue);
+      margin-bottom: 6px;
+    }
+    .company-overview .co-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .co-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .co-chip {
+      font-size: 10px; padding: 3px 9px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); font-weight: 500;
+    }
+    .news-feed {
+      flex: 1; min-width: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px;
+    }
+    .news-feed-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--muted); margin-bottom: 10px;
+    }
+    .news-item {
+      display: flex; flex-direction: column; gap: 2px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .news-item a {
+      font-size: 13px; font-weight: 500; color: var(--text);
+      text-decoration: none; line-height: 1.4;
+    }
+    .news-item a:hover { color: var(--pp-blue); }
+    .news-meta { font-size: 10px; color: var(--muted); }
+    .news-loading { font-size: 12px; color: var(--muted); padding: 8px 0; }
   </style>
 </head>
 <body>
@@ -757,6 +800,19 @@
 
   <!-- DASHBOARD (populated dynamically) -->
   <div id="dashboard-content" style="display:none">
+
+    <!-- COMPANY OVERVIEW + NEWS -->
+    <div class="company-news-row">
+      <div class="company-overview">
+        <div class="co-name" id="co-name"></div>
+        <div class="co-desc" id="co-desc"></div>
+        <div class="co-chips" id="co-chips"></div>
+      </div>
+      <div class="news-feed">
+        <div class="news-feed-title">📰 Recent News</div>
+        <div id="news-list"><div class="news-loading">Loading news…</div></div>
+      </div>
+    </div>
 
     <!-- STAT CARDS -->
     <div class="stats-section-label">Jira Stats</div>
@@ -1140,6 +1196,47 @@
 const JIRA_BASE = 'https://armorcodeinc.atlassian.net';
 const JIRA_USER = 'unarasimhan@armorcode.io';
 const CUSTOMER_NAME = window.CUSTOMER_CONFIG?.name || 'PayPal';
+
+// ── Company overview + news ───────────────────────────────────────────────
+(function initCompanySection() {
+  const cfg = window.CUSTOMER_CONFIG || {};
+
+  // Company blurb
+  const nameEl  = document.getElementById('co-name');
+  const descEl  = document.getElementById('co-desc');
+  const chipsEl = document.getElementById('co-chips');
+  if (nameEl)  nameEl.textContent  = cfg.name || '';
+  if (descEl)  descEl.textContent  = cfg.description || '';
+  if (chipsEl && (cfg.industry || cfg.hq)) {
+    chipsEl.innerHTML = [cfg.industry, cfg.hq]
+      .filter(Boolean)
+      .map(t => `<span class="co-chip">${escHtml(t)}</span>`)
+      .join('');
+  }
+
+  // News feed
+  const newsList = document.getElementById('news-list');
+  const customerId = cfg.id || 'paypal';
+  fetch('/api/news/' + customerId)
+    .then(r => r.json())
+    .then(data => {
+      const articles = data.articles || [];
+      if (!articles.length) {
+        newsList.innerHTML = '<div class="news-loading">No recent news found.</div>';
+        return;
+      }
+      newsList.innerHTML = articles.map(a => {
+        const date = a.pubDate ? new Date(a.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        return `<div class="news-item">
+          <a href="${escHtml(a.link)}" target="_blank" rel="noopener">${escHtml(a.title)}</a>
+          <div class="news-meta">${a.source ? escHtml(a.source) + (date ? ' · ' : '') : ''}${date}</div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {
+      if (newsList) newsList.innerHTML = '<div class="news-loading">Could not load news.</div>';
+    });
+})();
 
 function fmtDate(iso) {
   if (!iso) return '—';

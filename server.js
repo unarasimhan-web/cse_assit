@@ -13,36 +13,60 @@ const CUSTOMER_CONFIGS = {
     primaryColor: '#4A90FF', secondaryColor: '#00C2FF',
     jqlLabels: 'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
     slackChannels: ['ext-paypal-armorcode', 'paypal-prep', 'internal-paypal'],
+    newsQuery: 'PayPal fintech payments',
+    description: 'Global digital payments platform operating in 200+ countries. Enables consumers and businesses to send money, accept payments, and manage finances online — including Venmo, Braintree, and Hyperwallet.',
+    industry: 'Fintech / Digital Payments',
+    hq: 'San Jose, CA',
   },
   beneva: {
     id: 'beneva', name: 'Beneva',
     primaryColor: '#A855F7', secondaryColor: '#C084FC',
     jqlLabels: 'labels IN (beneva)',
     slackChannels: ['internal-beneva'],
+    newsQuery: 'Beneva insurance Canada',
+    description: 'Canada\'s largest mutual insurance company, formed in 2022 from the merger of La Capitale and SSQ Insurance. Offers auto, home, life, and group insurance products across Canada.',
+    industry: 'Insurance',
+    hq: 'Québec City, QC',
   },
   korber: {
-    id: 'korber', name: 'Korber',
+    id: 'korber', name: 'Körber',
     primaryColor: '#FF5733', secondaryColor: '#FF8C69',
     jqlLabels: 'labels ~ "korber"',
     slackChannels: [],
+    newsQuery: 'Körber technology supply chain',
+    description: 'German technology conglomerate delivering solutions across pharma, supply chain software (WMS/WCS), tissue converting, and tobacco. Serves 10,000+ customers in 100+ countries from Hamburg, Germany.',
+    industry: 'Industrial Technology / Supply Chain',
+    hq: 'Hamburg, Germany',
   },
   solera: {
     id: 'solera', name: 'Solera',
     primaryColor: '#FFB132', secondaryColor: '#FFCC70',
     jqlLabels: 'labels IN (solera, Solera)',
     slackChannels: [],
+    newsQuery: 'Solera Holdings automotive insurance',
+    description: 'Global data and software company specialising in vehicle lifecycle management, insurance claims, and automotive repair solutions. Serves insurers, OEMs, dealerships, and collision repair shops worldwide.',
+    industry: 'Automotive Data & Insurance Tech',
+    hq: 'Westlake, TX',
   },
   visa: {
     id: 'visa', name: 'Visa',
     primaryColor: '#4169E1', secondaryColor: '#F7B600',
     jqlLabels: 'labels IN (visa)',
     slackChannels: [],
+    newsQuery: 'Visa payments network fintech',
+    description: 'World\'s largest digital payment network, connecting 4B+ cardholders, 130M+ merchant locations, and 16,000+ financial institutions across 200+ countries. Processes $14T+ in annual payment volume.',
+    industry: 'Payment Network',
+    hq: 'Foster City, CA',
   },
   stancorp: {
     id: 'stancorp', name: 'StanCorp',
     primaryColor: '#22C55E', secondaryColor: '#4ADE80',
     jqlLabels: 'labels IN (Standard)',
     slackChannels: [],
+    newsQuery: 'The Standard Insurance StanCorp financial',
+    description: 'US-based insurance and financial services provider (The Standard). Offers group benefits — disability, life, dental, vision, and absence management — plus retirement plans for employers and individuals.',
+    industry: 'Insurance & Financial Services',
+    hq: 'Portland, OR',
   },
 };
 
@@ -60,7 +84,7 @@ function buildCustomerPage(cfg) {
   let html = getIndexHtml();
 
   // 1. Inject window.CUSTOMER_CONFIG before </head>
-  const safeConfig = { id: cfg.id, name: cfg.name, primaryColor: cfg.primaryColor, secondaryColor: cfg.secondaryColor, slackChannels: cfg.slackChannels };
+  const safeConfig = { id: cfg.id, name: cfg.name, primaryColor: cfg.primaryColor, secondaryColor: cfg.secondaryColor, slackChannels: cfg.slackChannels, description: cfg.description || '', industry: cfg.industry || '', hq: cfg.hq || '' };
   html = html.replace('</head>', `<script>window.CUSTOMER_CONFIG=${JSON.stringify(safeConfig)};</script>\n</head>`);
 
   // 2. CSS brand colors
@@ -759,6 +783,55 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Company news feed (Google News RSS, cached 1h per customer) ───────────
+const _newsCache = {}; // { customerId: { ts, articles } }
+const NEWS_CACHE_MS = 60 * 60 * 1000; // 1 hour
+
+function parseNewsRss(xml) {
+  const items = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = itemRe.exec(xml)) !== null && items.length < 5) {
+    const block = m[1];
+    const title   = (/<title><!\[CDATA\[(.*?)\]\]><\/title>/.exec(block) || /<title>(.*?)<\/title>/.exec(block) || [])[1] || '';
+    const link    = (/<link>(.*?)<\/link>/.exec(block) || [])[1] || '';
+    const pubDate = (/<pubDate>(.*?)<\/pubDate>/.exec(block) || [])[1] || '';
+    const source  = (/<source[^>]*>(.*?)<\/source>/.exec(block) || [])[1] || '';
+    if (title) items.push({
+      title:   title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim(),
+      link:    link.trim(),
+      pubDate: pubDate.trim(),
+      source:  source.trim(),
+    });
+  }
+  return items;
+}
+
+app.get('/api/news/:customer', requireAuth, async (req, res) => {
+  const cfg = CUSTOMER_CONFIGS[req.params.customer];
+  if (!cfg) return res.status(404).json({ error: 'Unknown customer' });
+
+  const cached = _newsCache[cfg.id];
+  if (cached && Date.now() - cached.ts < NEWS_CACHE_MS) {
+    return res.json({ articles: cached.articles });
+  }
+
+  try {
+    const query = encodeURIComponent(cfg.newsQuery || cfg.name);
+    const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ArmorCode-CSE/1.0)' } });
+    if (!r.ok) return res.status(502).json({ error: `News fetch failed: ${r.status}` });
+    const xml = await r.text();
+    const articles = parseNewsRss(xml);
+    _newsCache[cfg.id] = { ts: Date.now(), articles };
+    res.set('Cache-Control', 'no-cache');
+    res.json({ articles });
+  } catch (e) {
+    console.error('[News] fetch error:', e.message);
+    res.status(502).json({ error: e.message });
   }
 });
 
