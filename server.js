@@ -78,9 +78,12 @@ function buildCustomerPage(cfg) {
     `<div class="paypal-logo"><span style="font-weight:700;font-size:16px;color:${cfg.primaryColor}">${cfg.name}</span></div>\n    $1\n    $2`
   );
 
-  // 5. Add prominent "← All Customers" back nav after <main>
-  const backLogoSvg = `<svg width="22" height="24" viewBox="0 0 84 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0"><defs><clipPath id="bcp_p"><circle cx="30" cy="34" r="27"/></clipPath><clipPath id="bcp_b"><circle cx="54" cy="34" r="27"/></clipPath><clipPath id="bcp_y"><circle cx="42" cy="56" r="27"/></clipPath><mask id="bm_pb"><circle cx="54" cy="34" r="27" clip-path="url(#bcp_p)" fill="white"/></mask></defs><circle cx="30" cy="34" r="27" fill="#F9A8C0"/><circle cx="54" cy="34" r="27" fill="#A8C4F8"/><circle cx="42" cy="56" r="27" fill="#F8F8A0"/><circle cx="54" cy="34" r="27" clip-path="url(#bcp_p)" fill="#C89AD8"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_p)" fill="#F08098"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_b)" fill="#88CCA8"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_y)" mask="url(#bm_pb)" fill="#5C4A8A"/></svg>`;
-  html = html.replace('<main>', `<main>\n  <a href="/" class="back-nav">${backLogoSvg}<span style="font-size:16px;opacity:0.5">←</span><span>All Customers</span></a>`);
+  // 5. Activate "← All Customers" back-nav slot in header (inject href + content)
+  const backLogoSvg = `<svg width="18" height="20" viewBox="0 0 84 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0"><defs><clipPath id="bcp_p"><circle cx="30" cy="34" r="27"/></clipPath><clipPath id="bcp_b"><circle cx="54" cy="34" r="27"/></clipPath><clipPath id="bcp_y"><circle cx="42" cy="56" r="27"/></clipPath><mask id="bm_pb"><circle cx="54" cy="34" r="27" clip-path="url(#bcp_p)" fill="white"/></mask></defs><circle cx="30" cy="34" r="27" fill="#F9A8C0"/><circle cx="54" cy="34" r="27" fill="#A8C4F8"/><circle cx="42" cy="56" r="27" fill="#F8F8A0"/><circle cx="54" cy="34" r="27" clip-path="url(#bcp_p)" fill="#C89AD8"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_p)" fill="#F08098"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_b)" fill="#88CCA8"/><circle cx="42" cy="56" r="27" clip-path="url(#bcp_y)" mask="url(#bm_pb)" fill="#5C4A8A"/></svg>`;
+  html = html.replace(
+    '<a id="back-nav-slot" class="back-nav"></a>',
+    `<a id="back-nav-slot" class="back-nav" href="/">${backLogoSvg}<span>← All Customers</span></a>`
+  );
 
   // 6. Replace Slack section for non-PayPal customers
   if (cfg.id !== 'paypal') {

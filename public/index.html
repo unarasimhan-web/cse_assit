@@ -67,13 +67,15 @@
     }
     .theme-toggle:hover { color: var(--text); background: var(--border); }
     .back-nav {
-      display: inline-flex; align-items: center; gap: 10px;
+      display: none; /* hidden by default; server injects href to activate */
+      align-items: center; gap: 8px;
       text-decoration: none; background: var(--surface2);
-      border: 1px solid var(--border); padding: 7px 16px;
-      border-radius: 10px; color: var(--muted); font-size: 13px;
+      border: 1px solid var(--border); padding: 5px 13px;
+      border-radius: 8px; color: var(--muted); font-size: 12px;
+      white-space: nowrap;
       transition: border-color 0.2s, color 0.2s, background 0.2s;
-      margin: 14px 32px 0;
     }
+    .back-nav[href] { display: inline-flex; } /* show only when href is set */
     .back-nav:hover { border-color: var(--accent); color: var(--text); background: var(--surface); }
     .logo-badge {
       background: var(--accent);
@@ -717,6 +719,7 @@
     <h1>Customer 360</h1>
   </div>
   <div class="header-right">
+    <a id="back-nav-slot" class="back-nav"></a>
     <div class="header-meta">
       Last refreshed: <span id="last-updated">—</span>
       &nbsp;<button class="refresh-btn" onclick="loadTickets()" title="Refresh data from Jira">↻ Refresh</button>
