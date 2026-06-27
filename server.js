@@ -647,9 +647,8 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
 
 // ── Ticket gist: AI-generated 2-liner via Gemini ─────────────────────────────
 const _gistCache = {};
-// Simple throttle: track last Gemini call time to avoid 429s
 let _lastGeminiCall = 0;
-const GEMINI_MIN_GAP_MS = 2500; // max ~24 RPM, safely under 30 RPM free-tier limit
+const GEMINI_MIN_GAP_MS = 4000; // ~15 RPM — safely under 15 RPM free-tier limit
 
 async function throttledGemini(prompt) {
   const now = Date.now();
@@ -657,7 +656,7 @@ async function throttledGemini(prompt) {
   if (wait > 0) await new Promise(r => setTimeout(r, wait));
   _lastGeminiCall = Date.now();
 
-  const res = await fetch(
+  return fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
       method: 'POST',
@@ -665,7 +664,18 @@ async function throttledGemini(prompt) {
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     }
   );
-  return res;
+}
+
+// Retry up to 3 times on 429 with increasing back-off (4s, 8s, 12s)
+async function callGeminiWithRetry(prompt) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await throttledGemini(prompt);
+    if (res.status !== 429) return res;
+    console.warn(`[Gemini] 429 on attempt ${attempt + 1}, backing off ${(attempt + 1) * 4}s…`);
+    await new Promise(r => setTimeout(r, (attempt + 1) * 4000));
+  }
+  // Return a synthetic 429 response object after exhausting retries
+  return { ok: false, status: 429, text: async () => 'Rate limit exhausted after 3 retries' };
 }
 
 function adfToPlainText(node) {
@@ -716,12 +726,11 @@ app.get('/api/gist/:key', requireAuth, async (req, res) => {
       `2. What the end result will look like once done.\n` +
       `No jargon. No bullet points. No ticket ID mentions.`;
 
-    const gRes = await throttledGemini(prompt);
+    const gRes = await callGeminiWithRetry(prompt);
     if (!gRes.ok) {
       const errText = await gRes.text().catch(() => '');
       console.error('Gemini error:', gRes.status, errText.slice(0, 200));
-      // 429: don't cache — client should retry
-      if (gRes.status === 429) return res.status(429).json({ error: 'Rate limited — hover again in a moment' });
+      if (gRes.status === 429) return res.status(429).json({ error: 'Gemini rate limit — will auto-retry' });
       return res.status(502).json({ error: `Gemini returned ${gRes.status}` });
     }
     const gData  = await gRes.json();

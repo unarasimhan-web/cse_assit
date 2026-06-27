@@ -2268,16 +2268,20 @@ function sortSection(th) {
     tip.style.top  = y + 'px';
   }
 
-  function load(key, el) {
+  function showSpinner(key, msg) {
+    tip.innerHTML =
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + '</div>' +
+      '<div style="color:#8b91b5">' + msg + '</div>';
+    tip.style.display = 'block';
+  }
+
+  function load(key, el, retryCount) {
+    retryCount = retryCount || 0;
     if (cache[key]) {
       if (activeEl === el) render(cache[key].line1, cache[key].line2, key);
       return;
     }
-    // Show a spinner while fetching
-    tip.innerHTML =
-      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + '</div>' +
-      '<div style="color:#8b91b5">⏳ Summarising…</div>';
-    tip.style.display = 'block';
+    showSpinner(key, '⏳ Summarising…');
 
     fetch('/api/gist/' + encodeURIComponent(key))
       .then(function(r) {
@@ -2293,9 +2297,22 @@ function sortSection(th) {
       .catch(function(err) {
         var status = err && err.status;
         var detail = err && err.msg ? err.msg : 'network error';
-        // Don't cache rate-limit errors — next hover will retry
-        if (status !== 429) cache[key] = { line1: '⚠ ' + detail, line2: '' };
-        if (activeEl === el) render(detail, status === 429 ? 'Hover again in a moment…' : '', key);
+        if (status === 429 && retryCount < 2) {
+          // Auto-retry after 5s with countdown
+          var countdown = 5;
+          if (activeEl === el) showSpinner(key, '⏳ Rate limited — retrying in ' + countdown + 's…');
+          var timer = setInterval(function() {
+            countdown--;
+            if (activeEl === el) showSpinner(key, '⏳ Rate limited — retrying in ' + countdown + 's…');
+            if (countdown <= 0) {
+              clearInterval(timer);
+              if (activeEl === el) load(key, el, retryCount + 1);
+            }
+          }, 1000);
+        } else {
+          if (status !== 429) cache[key] = { line1: '⚠ ' + detail, line2: '' };
+          if (activeEl === el) render(status === 429 ? 'Still rate limited — try again shortly' : '⚠ ' + detail, '', key);
+        }
       });
   }
 
