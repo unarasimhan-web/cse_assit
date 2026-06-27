@@ -1100,6 +1100,7 @@
 // ═══════════════════════════════════════════════════════════════
 const JIRA_BASE = 'https://armorcodeinc.atlassian.net';
 const JIRA_USER = 'unarasimhan@armorcode.io';
+const CUSTOMER_NAME = window.CUSTOMER_CONFIG?.name || 'PayPal';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -1163,7 +1164,7 @@ async function loadTickets() {
   document.getElementById('dashboard-content').style.display = 'none';
 
   try {
-    const resp = await fetch('/api/tickets');
+    const resp = await fetch('/api/tickets/' + (window.CUSTOMER_CONFIG?.id || 'paypal'));
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({ error: 'HTTP ' + resp.status }));
       throw body;
@@ -1291,7 +1292,7 @@ function renderDashboard(data) {
         mood = 'is progressing with manageable risk'; moodClass = 'narr-ok';
       }
       paras.push(
-        `The PayPal account currently has <strong>${totalOpen} open ticket${totalOpen!==1?'s':''}</strong> across ` +
+        `The ${CUSTOMER_NAME} account currently has <strong>${totalOpen} open ticket${totalOpen!==1?'s':''}</strong> across ` +
         `projects <strong>${escHtml(proj)}</strong>. Overall account health ` +
         `<span class="${moodClass}">${mood}</span>. ` +
         `${inProgress.length} ticket${inProgress.length!==1?'s are':' is'} actively in progress` +
@@ -1316,7 +1317,7 @@ function renderDashboard(data) {
     if (awaitingCust.length || openBlocked.length) {
       let s = '';
       if (awaitingCust.length) {
-        s += `<span class="narr-warn"><strong>${awaitingCust.length} ticket${awaitingCust.length!==1?'s':''} ${awaitingCust.length===1?'is':'are'} awaiting customer input or clarification</strong></span> (${keyLinks(awaitingCust, 4)}). These items cannot progress without a response from PayPal and should be escalated if no reply is received within SLA`;
+        s += `<span class="narr-warn"><strong>${awaitingCust.length} ticket${awaitingCust.length!==1?'s':''} ${awaitingCust.length===1?'is':'are'} awaiting customer input or clarification</strong></span> (${keyLinks(awaitingCust, 4)}). These items cannot progress without a response from ${CUSTOMER_NAME} and should be escalated if no reply is received within SLA`;
       }
       if (openBlocked.length) {
         s += (s ? '. Additionally, ' : '') +
@@ -1351,7 +1352,7 @@ function renderDashboard(data) {
         `On the feature and story side, <strong>${stories.length} story/FR item${stories.length!==1?'s are':' is'} open</strong>. ` +
         (inProgStories.length ? `${inProgStories.length} ${inProgStories.length===1?'is':'are'} actively being built. ` : '') +
         (withEtaSt.length ? `${withEtaSt.length} ${withEtaSt.length===1?'has':'have'} a committed delivery date. ` : 'None have a committed ETA yet — dates should be confirmed with engineering. ') +
-        `Close monitoring of sprint commitments is advised to ensure PayPal's expectations are met.`
+        `Close monitoring of sprint commitments is advised to ensure ${CUSTOMER_NAME}'s expectations are met.`
       );
     }
 

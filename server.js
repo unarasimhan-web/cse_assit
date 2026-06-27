@@ -3,7 +3,114 @@ const cookieSession = require('cookie-session');
 const passport = require('passport');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const path = require('path');
+const fs   = require('fs');
 require('dotenv').config();
+
+// ── Customer Configs ──────────────────────────────────────────────────────────
+const CUSTOMER_CONFIGS = {
+  paypal: {
+    id: 'paypal', name: 'PayPal',
+    primaryColor: '#4A90FF', secondaryColor: '#00C2FF',
+    jqlLabels: 'labels IN (paypal, PayPal, PayPal_Prod, paypal-poc-list, paypal_poc, PayPal_PoC)',
+    slackChannels: ['ext-paypal-armorcode', 'paypal-prep', 'internal-paypal'],
+  },
+  beneva: {
+    id: 'beneva', name: 'Beneva',
+    primaryColor: '#A855F7', secondaryColor: '#C084FC',
+    jqlLabels: 'labels IN (beneva)',
+    slackChannels: ['internal-beneva'],
+  },
+  korber: {
+    id: 'korber', name: 'Korber',
+    primaryColor: '#FF5733', secondaryColor: '#FF8C69',
+    jqlLabels: 'labels ~ "korber"',
+    slackChannels: [],
+  },
+  solera: {
+    id: 'solera', name: 'Solera',
+    primaryColor: '#FFB132', secondaryColor: '#FFCC70',
+    jqlLabels: 'labels IN (solera, Solera)',
+    slackChannels: [],
+  },
+  visa: {
+    id: 'visa', name: 'Visa',
+    primaryColor: '#4169E1', secondaryColor: '#F7B600',
+    jqlLabels: 'labels IN (visa)',
+    slackChannels: [],
+  },
+  stancorp: {
+    id: 'stancorp', name: 'StanCorp',
+    primaryColor: '#22C55E', secondaryColor: '#4ADE80',
+    jqlLabels: 'labels IN (Standard)',
+    slackChannels: [],
+  },
+};
+
+// Cache index.html at startup for fast customer page serving
+let _indexHtmlCache = null;
+function getIndexHtml() {
+  if (!_indexHtmlCache) {
+    _indexHtmlCache = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+  }
+  return _indexHtmlCache;
+}
+
+// Build a per-customer version of index.html by injecting config + swapping tokens
+function buildCustomerPage(cfg) {
+  let html = getIndexHtml();
+
+  // 1. Inject window.CUSTOMER_CONFIG before </head>
+  const safeConfig = { id: cfg.id, name: cfg.name, primaryColor: cfg.primaryColor, secondaryColor: cfg.secondaryColor, slackChannels: cfg.slackChannels };
+  html = html.replace('</head>', `<script>window.CUSTOMER_CONFIG=${JSON.stringify(safeConfig)};</script>\n</head>`);
+
+  // 2. CSS brand colors
+  html = html.replace('--pp-blue: #003087;', `--pp-blue: ${cfg.primaryColor};`);
+  html = html.replace('--pp-light: #009cde;', `--pp-light: ${cfg.secondaryColor};`);
+
+  // 3. Page title + exec summary heading
+  html = html.replace('<title>PayPal Customer 360 — ArmorCode</title>', `<title>${cfg.name} Customer 360 — ArmorCode</title>`);
+  html = html.replace('Executive Summary — PayPal Account', `Executive Summary — ${cfg.name} Account`);
+  html = html.replace('ArmorCode Customer 360 &nbsp;·&nbsp; PayPal Account', `ArmorCode Customer 360 &nbsp;·&nbsp; ${cfg.name} Account`);
+
+  // 4. Customer logo in header: replace PayPal SVG with customer name text
+  html = html.replace(
+    /<div class="paypal-logo">[\s\S]*?<\/svg>\s*<\/div>\s*(<div class="logo-divider"><\/div>)\s*(<h1>Customer 360<\/h1>)/,
+    `<div class="paypal-logo"><span style="font-weight:700;font-size:16px;color:${cfg.primaryColor}">${cfg.name}</span></div>\n    $1\n    $2`
+  );
+
+  // 5. Add "← All Customers" back link after <main>
+  html = html.replace('<main>', `<main>\n  <div style="padding:8px 32px 0"><a href="/" style="font-size:12px;color:#8b91b5;text-decoration:none">← All Customers</a></div>`);
+
+  // 6. Replace Slack section for non-PayPal customers
+  if (cfg.id !== 'paypal') {
+    const slackSection = buildSlackSection(cfg);
+    html = html.replace(
+      /<div class="section" id="section-slack">[\s\S]*?<\/div><!-- \/section-slack -->/,
+      slackSection
+    );
+  }
+
+  return html;
+}
+
+function buildSlackSection(cfg) {
+  if (!cfg.slackChannels || cfg.slackChannels.length === 0) {
+    return `<div class="section" id="section-slack">
+      <div class="section-header"><span class="section-title">💬 Slack Context</span></div>
+      <div style="padding:16px 0;color:var(--muted);font-size:13px;">No Slack channels configured for ${cfg.name} yet.</div>
+    </div><!-- /section-slack -->`;
+  }
+  const channelPills = cfg.slackChannels.map(c =>
+    `<span style="background:#222536;padding:3px 10px;border-radius:4px;font-family:monospace;font-size:12px">#${c}</span>`
+  ).join(' ');
+  return `<div class="section" id="section-slack">
+    <div class="section-header"><span class="section-title">💬 Slack Context</span></div>
+    <div style="padding:12px 0">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Configured channels: ${channelPills}</p>
+      <p style="font-size:12px;color:var(--muted);font-style:italic">Live Slack data will appear here once the channel integration is enabled for this account.</p>
+    </div>
+  </div><!-- /section-slack -->`;
+}
 
 // ── Google Sheets visitor tracking ────────────────────────────────────────────
 const { google } = require('googleapis');
@@ -376,6 +483,107 @@ app.get('/api/tickets', requireAuth, async (req, res) => {
   }
 });
 
+// ── Generic Jira tickets proxy (any customer) ─────────────────────────────
+app.get('/api/tickets/:customer', requireAuth, async (req, res) => {
+  const cfg = CUSTOMER_CONFIGS[req.params.customer];
+  if (!cfg) return res.status(404).json({ error: 'Unknown customer: ' + req.params.customer });
+
+  const jiraEmail = process.env.JIRA_EMAIL;
+  const jiraToken = process.env.JIRA_API_TOKEN;
+  if (!jiraEmail || !jiraToken) {
+    return res.status(503).json({ error: 'Jira credentials not configured.' });
+  }
+
+  const jql = [
+    cfg.jqlLabels,
+    'AND project IN (ENG, PROD)',
+    'AND status NOT IN (Done, Invalid, "Won\'t Fix", "Wont Do", "Duplicate", "Deferred")',
+    'AND created >= -90d',
+    'ORDER BY created DESC'
+  ].join(' ');
+
+  const fields = 'key,id,issuetype,summary,status,priority,assignee,duedate,fixVersions,created,updated,labels,customfield_10020,subtasks,issuelinks,comment';
+  const auth   = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+  const params = new URLSearchParams({ jql, fields, maxResults: 100, startAt: 0, expand: 'changelog' });
+  const url    = `https://armorcodeinc.atlassian.net/rest/api/3/search/jql?${params}`;
+
+  try {
+    const jiraRes = await fetch(url, { headers: { 'Authorization': `Basic ${auth}`, 'Accept': 'application/json' } });
+    if (!jiraRes.ok) {
+      const errText = await jiraRes.text().catch(() => '');
+      return res.status(502).json({ error: `Jira returned ${jiraRes.status}`, details: errText.slice(0, 200) });
+    }
+    const data = await jiraRes.json();
+    const rawIssues = data.issues || data.values || [];
+    const CLOSED_STATUSES = ['done','invalid',"won't fix",'wont fix','wont do','duplicate','deferred'];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    const tickets = rawIssues.map(issue => {
+      const f = issue.fields || {};
+      const sprintArr = f['customfield_10020'] || [];
+      const activeSprint = Array.isArray(sprintArr)
+        ? sprintArr.find(s => s.state === 'active') || sprintArr[sprintArr.length - 1]
+        : (sprintArr && typeof sprintArr === 'object' ? sprintArr : null);
+      const histories = (issue.changelog?.histories || []).slice().sort((a, b) => new Date(a.created) - new Date(b.created));
+      const changes = [];
+      for (const h of histories) {
+        for (const item of (h.items || [])) {
+          if (item.field === 'Sprint') changes.push({ from: item.fromString || null, to: item.toString || null });
+        }
+      }
+      const rollovers   = changes.filter(c => c.from && c.to).length;
+      const allSprints  = changes.filter(c => c.to).map(c => c.to);
+      const sprintTrail = allSprints.filter((s, i) => i === 0 || s !== allSprints[i - 1]);
+      return {
+        key:       issue.key,
+        id:        issue.id,
+        type:      f.issuetype?.name       || 'Story',
+        summary:   f.summary               || '',
+        status:    f.status?.name          || '',
+        priority:  f.priority?.name        || 'Medium',
+        assignee:  f.assignee?.displayName || null,
+        duedate:   f.duedate               || null,
+        eta:       (f.fixVersions || [])[0]?.releaseDate || null,
+        etaName:   (f.fixVersions || [])[0]?.name       || null,
+        created:   f.created               || null,
+        updated:   f.updated               || null,
+        labels:    f.labels                || [],
+        sprint:    activeSprint?.name      || null,
+        sprintEnd: activeSprint?.endDate   || null,
+        closedRecently: CLOSED_STATUSES.includes((f.status?.name || '').toLowerCase()) &&
+                        f.updated && new Date(f.updated).getTime() >= sevenDaysAgo,
+        subtasks: (f.subtasks || []).filter(s => s && s.key && s.fields?.summary).map(s => ({
+          key: s.key, id: s.id, type: s.fields?.issuetype?.name || 'Sub-task',
+          summary: s.fields?.summary || '', status: s.fields?.status?.name || '',
+          priority: s.fields?.priority?.name || '', linkType: 'Sub-task',
+        })),
+        linkedIssues: (f.issuelinks || []).map(l => {
+          const linked = l.inwardIssue || l.outwardIssue;
+          if (!linked || !linked.key || !linked.fields?.summary) return null;
+          const dir = l.inwardIssue ? l.type?.inward : l.type?.outward;
+          return { key: linked.key, id: linked.id, type: linked.fields?.issuetype?.name || '',
+            summary: linked.fields?.summary || '', status: linked.fields?.status?.name || '',
+            priority: linked.fields?.priority?.name || '', linkType: dir || l.type?.name || 'Link',
+            direction: l.inwardIssue ? 'inward' : 'outward' };
+        }).filter(Boolean),
+        rollovers, sprintTrail,
+        csReachouts: 0, csReachoutBy: [],
+      };
+    });
+
+    res.json({ tickets, total: data.total, fetched: tickets.length, fetchedAt: new Date().toISOString() });
+  } catch (err) {
+    res.status(502).json({ error: 'Failed to reach Jira', details: err.message });
+  }
+});
+
+// ── Customer config endpoint ──────────────────────────────────────────────────
+app.get('/api/customer-config/:id', requireAuth, (req, res) => {
+  const cfg = CUSTOMER_CONFIGS[req.params.id];
+  if (!cfg) return res.status(404).json({ error: 'Unknown customer' });
+  res.json({ id: cfg.id, name: cfg.name, primaryColor: cfg.primaryColor, secondaryColor: cfg.secondaryColor, slackChannels: cfg.slackChannels });
+});
+
 // ── Post Jira comment (uses server-side credentials) ───────────────────────
 app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
   const key = req.params.key;
@@ -690,10 +898,40 @@ app.get('/api/debug', requireAuth, async (req, res) => {
   }
 });
 
+// ── Landing page ─────────────────────────────────────────────────────────────
 app.get('/', requireAuth, (req, res) => {
-  // Fire-and-forget visit log — don't block the page load
   logVisit(req.user).catch(() => {});
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
+// ── PayPal dashboard (existing, served with injected config) ─────────────────
+app.get('/paypal', requireAuth, (req, res) => {
+  logVisit(req.user).catch(() => {});
+  try {
+    const html = buildCustomerPage(CUSTOMER_CONFIGS.paypal);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (e) {
+    console.error('Error building PayPal page:', e);
+    res.status(500).send('Error loading dashboard');
+  }
+});
+
+// ── Generic customer dashboard ────────────────────────────────────────────────
+app.get('/:customer', requireAuth, (req, res) => {
+  const cfg = CUSTOMER_CONFIGS[req.params.customer];
+  if (!cfg) return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'), () => res.status(404).send('Not found'));
+  logVisit(req.user).catch(() => {});
+  try {
+    const html = buildCustomerPage(cfg);
+    // Invalidate cache so next request re-reads index.html (in case it was updated)
+    _indexHtmlCache = null;
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (e) {
+    console.error('Error building customer page for', cfg.id, ':', e);
+    res.status(500).send('Error loading dashboard');
+  }
 });
 
 // ── Visitor stats ─────────────────────────────────────────────────────────────

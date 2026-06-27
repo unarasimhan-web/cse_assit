@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArmorCode CSE — Customer Dashboards</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222536;
+      --border: #2e3150;
+      --accent: #6c63ff;
+      --text: #e8eaf6;
+      --muted: #8b91b5;
+      --red: #ff4d6d;
+      --orange: #ff9f43;
+      --green: #2ed573;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 14px; }
+    .logo-badge {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .logo-divider { width: 1px; height: 32px; background: var(--border); }
+    .logo h1 { font-size: 17px; font-weight: 600; }
+    .logo span { color: var(--muted); font-size: 13px; margin-left: 4px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-info-bar { display: flex; align-items: center; gap: 8px; }
+
+    /* MAIN */
+    main { padding: 36px 32px; max-width: 1200px; margin: 0 auto; }
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .page-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+
+    /* GRID */
+    .customer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* TILE */
+    .customer-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .customer-tile::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--cust-primary, var(--accent));
+      border-radius: 14px 14px 0 0;
+    }
+    .customer-tile:hover {
+      border-color: var(--cust-primary, var(--accent));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.3);
+    }
+
+    .tile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .tile-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--cust-primary, var(--text));
+    }
+    .health-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .health-healthy  { background: rgba(46,213,115,.12); border: 1px solid #2ed573; color: #2ed573; }
+    .health-attention{ background: rgba(255,159,67,.12); border: 1px solid var(--orange); color: var(--orange); }
+    .health-risk     { background: rgba(255,77,109,.12); border: 1px solid var(--red); color: var(--red); }
+    .health-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* STATS ROW */
+    .tile-stats {
+      display: flex; gap: 12px; margin-bottom: 14px;
+    }
+    .stat-chip {
+      flex: 1; background: var(--surface2); border-radius: 8px;
+      padding: 8px 10px; text-align: center;
+    }
+    .stat-chip .num { font-size: 20px; font-weight: 700; line-height: 1; }
+    .stat-chip .lbl { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-loading { color: var(--muted); font-size: 11px; }
+
+    /* FOOTER ROW */
+    .tile-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-top: 4px;
+    }
+    .slack-channels { display: flex; gap: 4px; flex-wrap: wrap; }
+    .slack-chip {
+      background: var(--surface2); padding: 2px 7px; border-radius: 4px;
+      font-family: monospace; font-size: 10px; color: var(--muted);
+    }
+    .tile-arrow { font-size: 14px; color: var(--cust-primary, var(--muted)); opacity: 0.7; }
+
+    footer {
+      text-align: center; padding: 24px; font-size: 11px; color: var(--muted);
+      border-top: 1px solid var(--border); margin-top: 40px;
+    }
+
+    /* spinner */
+    .mini-spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid var(--border); border-top-color: var(--muted);
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <!-- ArmorCode logo (simplified) -->
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="#6c63ff"/>
+      <text x="7" y="22" font-family="Arial" font-weight="900" font-size="16" fill="#fff">AC</text>
+    </svg>
+    <div class="logo-badge">ArmorCode</div>
+    <div class="logo-divider"></div>
+    <h1>CSE Dashboards <span>Customer 360</span></h1>
+  </div>
+  <div class="header-right">
+    <div class="user-info-bar">
+      <img id="user-photo" src="" alt="" style="width:28px;height:28px;border-radius:50%;display:none">
+      <div>
+        <div id="user-name" style="font-size:13px;font-weight:600;color:#e8eaf6">...</div>
+        <div id="user-email" style="font-size:11px;color:#8b91b5"></div>
+      </div>
+      <a href="/logout" style="margin-left:8px;font-size:11px;color:#8b91b5;text-decoration:none;border:1px solid #2e3150;padding:3px 10px;border-radius:6px">Logout</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">Customer Accounts</div>
+  <div class="page-subtitle">Select a customer to view their live Jira ticket dashboard.</div>
+
+  <div class="customer-grid" id="customer-grid">
+    <!-- tiles injected by JS -->
+  </div>
+</main>
+
+<footer>
+  ArmorCode CSE Assist &nbsp;·&nbsp; Restricted to @armorcode.io &nbsp;·&nbsp; Data sourced from Jira (ENG, PROD)
+</footer>
+
+<script>
+const CUSTOMERS = [
+  { id: 'paypal',   name: 'PayPal',   primary: '#4A90FF', secondary: '#00C2FF', slack: ['ext-paypal-armorcode','paypal-prep','internal-paypal'] },
+  { id: 'beneva',   name: 'Beneva',   primary: '#A855F7', secondary: '#C084FC', slack: ['internal-beneva'] },
+  { id: 'korber',   name: 'Korber',   primary: '#FF5733', secondary: '#FF8C69', slack: [] },
+  { id: 'solera',   name: 'Solera',   primary: '#FFB132', secondary: '#FFCC70', slack: [] },
+  { id: 'visa',     name: 'Visa',     primary: '#4169E1', secondary: '#F7B600', slack: [] },
+  { id: 'stancorp', name: 'StanCorp', primary: '#22C55E', secondary: '#4ADE80', slack: [] },
+];
+
+// Fetch user info
+fetch('/api/me').then(r => r.json()).then(u => {
+  if (u.name) document.getElementById('user-name').textContent = u.name;
+  if (u.email) document.getElementById('user-email').textContent = u.email;
+  if (u.photo) { const img = document.getElementById('user-photo'); img.src = u.photo; img.style.display = 'block'; }
+}).catch(() => {});
+
+// Build tiles
+const grid = document.getElementById('customer-grid');
+CUSTOMERS.forEach(c => {
+  const tile = document.createElement('a');
+  tile.href = '/' + c.id;
+  tile.className = 'customer-tile';
+  tile.style.setProperty('--cust-primary', c.primary);
+
+  const slackHtml = c.slack.length
+    ? c.slack.map(s => `<span class="slack-chip">#${s}</span>`).join('')
+    : '<span style="font-style:italic;font-size:10px">No channels yet</span>';
+
+  tile.innerHTML = `
+    <div class="tile-header">
+      <div class="tile-name">${c.name}</div>
+      <div class="health-badge health-attention" id="health-${c.id}">
+        <span class="health-dot"></span>
+        <span class="mini-spinner"></span>
+      </div>
+    </div>
+    <div class="tile-stats" id="stats-${c.id}">
+      <div class="stat-chip"><div class="num" style="color:${c.primary}" id="open-${c.id}"><span class="mini-spinner"></span></div><div class="lbl">Open</div></div>
+      <div class="stat-chip"><div class="num" style="color:#ff4d6d" id="bugs-${c.id}">—</div><div class="lbl">Bugs</div></div>
+      <div class="stat-chip"><div class="num" style="color:#ff9f43" id="unassigned-${c.id}">—</div><div class="lbl">Unassigned</div></div>
+    </div>
+    <div class="tile-footer">
+      <div class="slack-channels">${slackHtml}</div>
+      <div class="tile-arrow">→</div>
+    </div>
+  `;
+  grid.appendChild(tile);
+});
+
+// Load ticket counts for each customer
+CUSTOMERS.forEach(c => {
+  fetch('/api/tickets/' + c.id)
+    .then(r => r.json())
+    .then(data => {
+      const tickets = data.tickets || [];
+      const open = tickets.length;
+      const bugs = tickets.filter(t => (t.type||'').toLowerCase() === 'bug').length;
+      const unassigned = tickets.filter(t => !t.assignee).length;
+      const urgentBugs = tickets.filter(t => (t.type||'').toLowerCase() === 'bug' && ['urgent','highest'].includes((t.priority||'').toLowerCase())).length;
+      const overdueCount = tickets.filter(t => { const d = t.duedate||t.eta; return d && new Date(d) < new Date(); }).length;
+
+      document.getElementById('open-' + c.id).textContent = open;
+      document.getElementById('bugs-' + c.id).textContent = bugs;
+      document.getElementById('unassigned-' + c.id).textContent = unassigned;
+
+      // Health: AT RISK if urgent bugs ≥ 2 or overdue ≥ 3; NEEDS ATTENTION if bugs > 0 or unassigned > 3; else HEALTHY
+      const healthEl = document.getElementById('health-' + c.id);
+      let healthClass, healthLabel;
+      if (urgentBugs >= 2 || overdueCount >= 3) {
+        healthClass = 'health-risk'; healthLabel = 'AT RISK';
+      } else if (bugs > 0 || unassigned > 3) {
+        healthClass = 'health-attention'; healthLabel = 'NEEDS ATTENTION';
+      } else {
+        healthClass = 'health-healthy'; healthLabel = 'HEALTHY';
+      }
+      healthEl.className = 'health-badge ' + healthClass;
+      healthEl.innerHTML = `<span class="health-dot"></span>${healthLabel}`;
+    })
+    .catch(() => {
+      document.getElementById('open-' + c.id).textContent = '—';
+      const healthEl = document.getElementById('health-' + c.id);
+      healthEl.className = 'health-badge health-attention';
+      healthEl.innerHTML = `<span class="health-dot"></span>N/A`;
+    });
+});
+</script>
+</body>
+</html>
