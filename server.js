@@ -835,6 +835,111 @@ app.get('/api/news/:customer', requireAuth, async (req, res) => {
   }
 });
 
+// ── Slack live feed (last 10 days, via Slack Bot Token) ───────────────────
+const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN;
+const _slackChannelIds = {};   // channel name → id (persists in-process)
+const _slackUserNames  = {};   // user id → display name
+const _slackDataCache  = {};   // customerId → { ts, data }
+const SLACK_DATA_CACHE_MS = 5 * 60 * 1000; // 5 minutes
+
+async function slackGet(method, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch(`https://slack.com/api/${method}?${qs}`, {
+    headers: { Authorization: `Bearer ${SLACK_TOKEN}`, 'Content-Type': 'application/json' }
+  });
+  const data = await r.json();
+  if (!data.ok) throw new Error(`Slack ${method}: ${data.error}`);
+  return data;
+}
+
+async function resolveChannelId(name) {
+  const clean = name.replace(/^#/, '');
+  if (_slackChannelIds[clean]) return _slackChannelIds[clean];
+  // Paginate through all channels to build cache
+  let cursor = '';
+  do {
+    const params = { types: 'public_channel,private_channel', limit: 200, exclude_archived: true };
+    if (cursor) params.cursor = cursor;
+    const data = await slackGet('conversations.list', params);
+    for (const ch of (data.channels || [])) _slackChannelIds[ch.name] = ch.id;
+    cursor = data.response_metadata?.next_cursor || '';
+  } while (cursor);
+  return _slackChannelIds[clean] || null;
+}
+
+async function resolveUserName(userId) {
+  if (!userId) return 'Unknown';
+  if (_slackUserNames[userId]) return _slackUserNames[userId];
+  try {
+    const data = await slackGet('users.info', { user: userId });
+    const name = data.user?.profile?.display_name_normalized || data.user?.real_name || userId;
+    _slackUserNames[userId] = name;
+    return name;
+  } catch { return userId; }
+}
+
+function slackMrkdwnToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+    .replace(/_([^_]+)_/g, '<i>$1</i>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/<(https?:\/\/[^|>]+)\|([^>]+)>/g, '<a href="$1" target="_blank" rel="noopener">$2</a>')
+    .replace(/<(https?:\/\/[^>]+)>/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+
+app.get('/api/slack/:customer', requireAuth, async (req, res) => {
+  const cfg = CUSTOMER_CONFIGS[req.params.customer];
+  if (!cfg) return res.status(404).json({ error: 'Unknown customer' });
+  if (!SLACK_TOKEN) return res.status(503).json({ error: 'SLACK_BOT_TOKEN not configured' });
+  if (!cfg.slackChannels?.length) return res.json({ channels: [], from: '', to: '' });
+
+  const cached = _slackDataCache[cfg.id];
+  if (cached && Date.now() - cached.ts < SLACK_DATA_CACHE_MS) return res.json(cached.data);
+
+  const nowMs  = Date.now();
+  const oldest = String((nowMs / 1000) - 10 * 24 * 60 * 60);
+  const channels = [];
+
+  for (const channelName of cfg.slackChannels) {
+    let channelId;
+    try { channelId = await resolveChannelId(channelName); }
+    catch (e) { channels.push({ name: channelName, error: e.message, messages: [] }); continue; }
+    if (!channelId) { channels.push({ name: channelName, error: 'Channel not found or bot not a member', messages: [] }); continue; }
+
+    let hist;
+    try { hist = await slackGet('conversations.history', { channel: channelId, oldest, limit: 30 }); }
+    catch (e) { channels.push({ name: channelName, error: e.message, messages: [] }); continue; }
+
+    const messages = [];
+    for (const msg of (hist.messages || [])) {
+      // Skip join/leave/channel_purpose etc.
+      if (msg.subtype && !['bot_message', 'thread_broadcast'].includes(msg.subtype)) continue;
+      const user = await resolveUserName(msg.user || msg.bot_id);
+      const d = new Date(parseFloat(msg.ts) * 1000);
+      messages.push({
+        user,
+        html: slackMrkdwnToHtml((msg.text || '').slice(0, 600)),
+        ts:    d.toISOString(),
+        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+               d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        replyCount: msg.reply_count || 0,
+        isExternal: channelName.startsWith('ext-'),
+      });
+    }
+    messages.reverse(); // show oldest first
+    channels.push({ name: channelName, isExternal: channelName.startsWith('ext-'), messages });
+  }
+
+  const fmt = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const data = { channels, from: fmt(nowMs - 10 * 24 * 60 * 60 * 1000), to: fmt(nowMs) };
+  _slackDataCache[cfg.id] = { ts: nowMs, data };
+  res.set('Cache-Control', 'no-cache');
+  res.json(data);
+});
+
 // ── Latest comment fetch (for status cell hover tooltip) ──────────────────
 app.get('/api/comments/:key', requireAuth, async (req, res) => {
   const key = req.params.key;
