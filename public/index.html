@@ -22,12 +22,28 @@
       --pp-blue: #003087;
       --pp-light: #009cde;
     }
+    [data-theme="light"] {
+      --bg: #f4f5f9;
+      --surface: #ffffff;
+      --surface2: #eef0f6;
+      --border: #dde0ee;
+      --accent: #5b52e8;
+      --accent2: #00997a;
+      --red: #d9203e;
+      --orange: #c47300;
+      --yellow: #9a7000;
+      --green: #1a9e52;
+      --blue: #1280a0;
+      --text: #1a1d2e;
+      --muted: #6b6f8a;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
     }
 
     /* HEADER */
@@ -43,6 +59,22 @@
       z-index: 100;
     }
     .logo { display: flex; align-items: center; gap: 14px; }
+    .theme-toggle {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px; padding: 5px 10px;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .theme-toggle:hover { color: var(--text); background: var(--border); }
+    .back-nav {
+      display: inline-flex; align-items: center; gap: 10px;
+      text-decoration: none; background: var(--surface2);
+      border: 1px solid var(--border); padding: 7px 16px;
+      border-radius: 10px; color: var(--muted); font-size: 13px;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      margin: 14px 32px 0;
+    }
+    .back-nav:hover { border-color: var(--accent); color: var(--text); background: var(--surface); }
     .logo-badge {
       background: var(--accent);
       color: #fff;
@@ -692,10 +724,13 @@
     <div class="user-info-bar">
       <img id="user-photo" src="" alt="" style="width:28px;height:28px;border-radius:50%;display:none;">
       <div>
-        <div id="user-name" style="font-size:13px;font-weight:600;color:#e8eaf6;">...</div>
-        <div id="user-email" style="font-size:11px;color:#8b91b5;"></div>
+        <div id="user-name" style="font-size:13px;font-weight:600;color:var(--text);">...</div>
+        <div id="user-email" style="font-size:11px;color:var(--muted);"></div>
       </div>
-      <a href="/logout" style="margin-left:8px;font-size:11px;color:#8b91b5;text-decoration:none;border:1px solid #2e3150;padding:3px 10px;border-radius:6px;">Logout</a>
+      <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span id="theme-icon">☀️</span><span id="theme-label">Light</span>
+      </button>
+      <a href="/logout" style="margin-left:4px;font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:3px 10px;border-radius:6px;background:var(--surface2)">Logout</a>
     </div>
   </div>
 </header>
@@ -2108,6 +2143,21 @@ fetch('/api/me').then(r => r.json()).then(u => {
 // BOOT
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', loadTickets);
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+(function() {
+  var dark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+  function applyTheme(d) {
+    dark = d;
+    document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
+    var icon = document.getElementById('theme-icon');
+    var lbl  = document.getElementById('theme-label');
+    if (icon) icon.textContent = d ? '☀️' : '🌙';
+    if (lbl)  lbl.textContent  = d ? 'Light' : 'Dark';
+  }
+  window.toggleTheme = function() { applyTheme(!dark); };
+  applyTheme(dark);
+})();
 </script>
 
 <script>

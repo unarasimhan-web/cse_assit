@@ -180,9 +180,20 @@
 <header>
   <div class="logo">
     <!-- ArmorCode logo (simplified) -->
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="8" fill="#6c63ff"/>
-      <text x="7" y="22" font-family="Arial" font-weight="900" font-size="16" fill="#fff">AC</text>
+    <svg width="30" height="33" viewBox="0 0 84 92" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0" aria-label="ArmorCode">
+      <defs>
+        <clipPath id="lcp_p"><circle cx="30" cy="34" r="27"/></clipPath>
+        <clipPath id="lcp_b"><circle cx="54" cy="34" r="27"/></clipPath>
+        <clipPath id="lcp_y"><circle cx="42" cy="56" r="27"/></clipPath>
+        <mask id="lm_pb"><circle cx="54" cy="34" r="27" clip-path="url(#lcp_p)" fill="white"/></mask>
+      </defs>
+      <circle cx="30" cy="34" r="27" fill="#F9A8C0"/>
+      <circle cx="54" cy="34" r="27" fill="#A8C4F8"/>
+      <circle cx="42" cy="56" r="27" fill="#F8F8A0"/>
+      <circle cx="54" cy="34" r="27" clip-path="url(#lcp_p)" fill="#C89AD8"/>
+      <circle cx="42" cy="56" r="27" clip-path="url(#lcp_p)" fill="#F08098"/>
+      <circle cx="42" cy="56" r="27" clip-path="url(#lcp_b)" fill="#88CCA8"/>
+      <circle cx="42" cy="56" r="27" clip-path="url(#lcp_y)" mask="url(#lm_pb)" fill="#5C4A8A"/>
     </svg>
     <div class="logo-badge">ArmorCode</div>
     <div class="logo-divider"></div>
@@ -198,14 +209,14 @@
       <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
         <span id="theme-icon">☀️</span><span id="theme-label">Light</span>
       </button>
-      <a href="/logout" style="margin-left:8px;font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:3px 10px;border-radius:6px">Logout</a>
+      <a href="/logout" style="margin-left:8px;font-size:11px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:3px 10px;border-radius:6px;background:var(--surface2)">Logout</a>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="page-title">Customer Accounts</div>
-  <div class="page-subtitle">Select a customer to view their live Jira ticket dashboard.</div>
+  <div class="page-title">Uma's Accounts</div>
+  <div class="page-subtitle">Your active customer portfolio · CSE · Live data from Jira (ENG, PROD)</div>
 
   <div class="customer-grid" id="customer-grid">
     <!-- tiles injected by JS -->
