@@ -649,34 +649,47 @@ app.post('/api/comment/:key', requireAuth, express.json(), async (req, res) => {
 // ── Ticket gist: AI-generated 2-liner via Gemini ─────────────────────────────
 const _gistCache = {};
 let _lastGeminiCall = 0;
-const GEMINI_MIN_GAP_MS = 4000; // ~15 RPM — safely under 15 RPM free-tier limit
+const GEMINI_MIN_GAP_MS = 2000;
+const GEMINI_CALL_TIMEOUT_MS = 6000; // hard 6s timeout per Gemini call
 
-async function throttledGemini(prompt) {
-  const now = Date.now();
-  const wait = GEMINI_MIN_GAP_MS - (now - _lastGeminiCall);
-  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+async function callGemini(prompt) {
+  // Throttle: enforce minimum gap between calls
+  const gap = GEMINI_MIN_GAP_MS - (Date.now() - _lastGeminiCall);
+  if (gap > 0) await new Promise(r => setTimeout(r, gap));
   _lastGeminiCall = Date.now();
 
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GEMINI_CALL_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        signal: controller.signal,
+      }
+    );
+    return res;
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      return { ok: false, status: 408, text: async () => 'Gemini timed out' };
     }
-  );
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
-// Retry up to 3 times on 429 with increasing back-off (4s, 8s, 12s)
+// 1 retry on 429 with a short delay — fail fast rather than queue for 30s
 async function callGeminiWithRetry(prompt) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await throttledGemini(prompt);
-    if (res.status !== 429) return res;
-    console.warn(`[Gemini] 429 on attempt ${attempt + 1}, backing off ${(attempt + 1) * 4}s…`);
-    await new Promise(r => setTimeout(r, (attempt + 1) * 4000));
+  const res = await callGemini(prompt);
+  if (res.status === 429) {
+    console.warn('[Gemini] 429 — retrying once after 3s');
+    await new Promise(r => setTimeout(r, 3000));
+    return callGemini(prompt);
   }
-  // Return a synthetic 429 response object after exhausting retries
-  return { ok: false, status: 429, text: async () => 'Rate limit exhausted after 3 retries' };
+  return res;
 }
 
 function adfToPlainText(node) {

@@ -2144,12 +2144,15 @@ fetch('/api/me').then(r => r.json()).then(u => {
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', loadTickets);
 
-// ── Theme toggle ──────────────────────────────────────────────────────────────
+// ── Theme toggle — persisted via localStorage ─────────────────────────────────
 (function() {
-  var dark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+  var THEME_KEY = 'ac_cse_theme';
+  var saved = localStorage.getItem(THEME_KEY);
+  var dark = saved ? saved === 'dark' : !window.matchMedia('(prefers-color-scheme: light)').matches;
   function applyTheme(d) {
     dark = d;
     document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
+    localStorage.setItem(THEME_KEY, d ? 'dark' : 'light');
     var icon = document.getElementById('theme-icon');
     var lbl  = document.getElementById('theme-label');
     if (icon) icon.textContent = d ? '☀️' : '🌙';
@@ -2279,34 +2282,29 @@ function sortSection(th) {
   });
 })();
 
-// ── Ticket ID hover → gist tooltip (description + crisp ask) ───────────────
+// ── Ticket ID hover → gist tooltip ──────────────────────────────────────────
 (function() {
-  var cache = {}, activeEl = null;
+  var cache = {};
+  var activeEl = null;
+  var activeAbort = null; // AbortController for the inflight fetch
 
   var tip = document.createElement('div');
-  tip.style.cssText = [
-    'display:none',
-    'position:fixed',
-    'z-index:10001',
-    'background:#1a1d27',
-    'border:1px solid #6c63ff55',
-    'border-radius:10px',
-    'padding:12px 16px',
-    'max-width:340px',
-    'font-size:12px',
-    'line-height:1.65',
-    'color:#e8eaf6',
-    'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-    'pointer-events:none',
-    'font-family:Segoe UI,system-ui,sans-serif',
-  ].join(';');
+  tip.style.cssText = 'display:none;position:fixed;z-index:10001;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:12px 16px;max-width:340px;font-size:12px;line-height:1.65;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;font-family:Segoe UI,system-ui,sans-serif;transition:none';
   document.body.appendChild(tip);
 
   function render(line1, line2, key) {
     tip.innerHTML =
-      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + ' — Quick Summary</div>' +
-      '<div style="color:#c5c9e8;margin-bottom:6px;font-weight:500">' + escHtml(line1) + '</div>' +
-      (line2 ? '<div style="color:#8b91b5;font-size:11px;border-top:1px solid #2e3150;padding-top:6px;margin-top:2px">' + escHtml(line2) + '</div>' : '');
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--accent);margin-bottom:7px;text-transform:uppercase">📋 ' + key + ' — Quick Summary</div>' +
+      '<div style="color:var(--text);margin-bottom:6px;font-weight:500">' + escHtml(line1) + '</div>' +
+      (line2 ? '<div style="color:var(--muted);font-size:11px;border-top:1px solid var(--border);padding-top:6px;margin-top:2px">' + escHtml(line2) + '</div>' : '');
+    tip.style.display = 'block';
+  }
+
+  function showMsg(key, line1, line2) {
+    tip.innerHTML =
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--accent);margin-bottom:7px;text-transform:uppercase">📋 ' + key + '</div>' +
+      '<div style="color:var(--muted)">' + line1 + '</div>' +
+      (line2 ? '<div style="color:var(--muted);font-size:10px;margin-top:4px">' + line2 + '</div>' : '');
     tip.style.display = 'block';
   }
 
@@ -2314,60 +2312,62 @@ function sortSection(th) {
     var x = e.clientX + 20, y = e.clientY + 22;
     if (x + 350 > window.innerWidth)  x = e.clientX - 355;
     if (y + 140 > window.innerHeight) y = e.clientY - 130;
-    tip.style.left = x + 'px';
-    tip.style.top  = y + 'px';
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
   }
 
-  function showSpinner(key, msg) {
-    tip.innerHTML =
-      '<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#6c63ff;margin-bottom:7px;text-transform:uppercase">📋 ' + key + '</div>' +
-      '<div style="color:#8b91b5">' + msg + '</div>';
-    tip.style.display = 'block';
+  function cancelInflight() {
+    if (activeAbort) { activeAbort.abort(); activeAbort = null; }
   }
 
-  function load(key, el, retryCount) {
-    retryCount = retryCount || 0;
-    if (cache[key]) {
-      if (activeEl === el) render(cache[key].line1, cache[key].line2, key);
-      return;
-    }
-    showSpinner(key, '⏳ Summarising…');
+  function load(key, el) {
+    // Serve from cache immediately
+    if (cache[key]) { if (activeEl === el) render(cache[key].line1, cache[key].line2, key); return; }
 
-    fetch('/api/gist/' + encodeURIComponent(key))
+    cancelInflight();
+    showMsg(key, '⏳ Summarising…', '');
+
+    var abort = new AbortController();
+    activeAbort = abort;
+
+    // Client-side 8s hard timeout
+    var clientTimeout = setTimeout(function() {
+      abort.abort();
+    }, 8000);
+
+    fetch('/api/gist/' + encodeURIComponent(key), { signal: abort.signal })
       .then(function(r) {
+        clearTimeout(clientTimeout);
         if (r.ok) return r.json();
         return r.json().catch(function() { return {}; }).then(function(body) {
           return Promise.reject({ status: r.status, msg: body.error || ('HTTP ' + r.status) });
         });
       })
       .then(function(d) {
+        activeAbort = null;
         cache[key] = { line1: d.line1 || key, line2: d.line2 || '' };
         if (activeEl === el) render(cache[key].line1, cache[key].line2, key);
       })
       .catch(function(err) {
+        clearTimeout(clientTimeout);
+        activeAbort = null;
+        if (err && err.name === 'AbortError') {
+          // Aborted — either timeout or mouse-leave. Don't cache; re-hover will retry.
+          if (activeEl === el) showMsg(key, '⏳ Timed out — hover again to retry', '');
+          return;
+        }
         var status = err && err.status;
-        var detail = err && err.msg ? err.msg : 'network error';
-        if (status === 429 && retryCount < 2) {
-          // Auto-retry after 5s with countdown
-          var countdown = 5;
-          if (activeEl === el) showSpinner(key, '⏳ Rate limited — retrying in ' + countdown + 's…');
-          var timer = setInterval(function() {
-            countdown--;
-            if (activeEl === el) showSpinner(key, '⏳ Rate limited — retrying in ' + countdown + 's…');
-            if (countdown <= 0) {
-              clearInterval(timer);
-              if (activeEl === el) load(key, el, retryCount + 1);
-            }
-          }, 1000);
+        var detail = err && err.msg ? err.msg : String(err);
+        if (status === 429) {
+          // Don't cache — allow re-hover to retry
+          if (activeEl === el) showMsg(key, '⏳ Rate limited', 'Hover again in a moment');
         } else {
-          if (status !== 429) cache[key] = { line1: '⚠ ' + detail, line2: '' };
-          if (activeEl === el) render(status === 429 ? 'Still rate limited — try again shortly' : '⚠ ' + detail, '', key);
+          cache[key] = { line1: '⚠ ' + detail, line2: 'Check GEMINI_API_KEY env var' };
+          if (activeEl === el) render('⚠ ' + detail, 'Check GEMINI_API_KEY env var', key);
         }
       });
   }
 
   function isKeyLink(el) {
-    // Must be an <a> inside a td.key, not a child-row
     if (el.tagName !== 'A') return false;
     var td = el.closest('td');
     if (!td || !td.classList.contains('key')) return false;
@@ -2391,7 +2391,11 @@ function sortSection(th) {
 
   document.addEventListener('mouseout', function(e) {
     var el = e.target.closest('a');
-    if (el && el === activeEl) { tip.style.display = 'none'; activeEl = null; }
+    if (el && el === activeEl) {
+      tip.style.display = 'none';
+      activeEl = null;
+      cancelInflight(); // abort any pending fetch immediately on mouse-leave
+    }
   });
 })();
 
